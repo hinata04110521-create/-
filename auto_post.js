@@ -126,5 +126,6 @@ async function main() {
 
 main().catch((err) => {
   console.error("エラー:", err.message)
+  console.error("詳細:", err.stack || err)
   process.exit(1)
 })
