@@ -24,6 +24,34 @@ function threadsFetch(url, params) {
   })
 }
 
+// Threads API に GET
+function threadsGet(url) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, (res) => {
+      let data = ""
+      res.on("data", (chunk) => (data += chunk))
+      res.on("end", () => resolve(JSON.parse(data)))
+    })
+    req.on("error", reject)
+  })
+}
+
+// 自分のThreads投稿を最大50件取得
+async function fetchMyPosts() {
+  const TOKEN   = process.env.THREADS_ACCESS_TOKEN
+  const USER_ID = process.env.THREADS_USER_ID
+  const url = `https://graph.threads.net/v1.0/${USER_ID}/threads?fields=text&limit=50&access_token=${TOKEN}`
+  try {
+    const res = await threadsGet(url)
+    if (res.error || !res.data) return []
+    return res.data
+      .map((p) => p.text)
+      .filter((t) => t && t.length > 10)
+  } catch {
+    return []
+  }
+}
+
 // Threads に投稿
 async function postToThreads(text) {
   const TOKEN   = process.env.THREADS_ACCESS_TOKEN
@@ -55,21 +83,31 @@ async function generateWithClaude(timeSlot) {
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY が設定されていません")
   const client = new Anthropic({ apiKey })
 
-  const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
-  const examples = [...posts.lunch, ...posts.afternoon].slice(0, 6).join("\n\n---\n\n")
+  // posts.json の全50投稿を使用
+  const localPosts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
+  const localExamples = [...localPosts.lunch, ...localPosts.afternoon]
+
+  // Threadsアカウントの実際の投稿も取得
+  const accountPosts = await fetchMyPosts()
+  console.log(`アカウントから${accountPosts.length}件の投稿を取得`)
+
+  // 合わせて最大50件をサンプルに
+  const allExamples = [...accountPosts, ...localExamples].slice(0, 50)
+  const examples = allExamples.join("\n\n---\n\n")
 
   const styleGuide = `
-以下の投稿例を参考に、同じ文体・トーン・表現スタイルで書いてください。
+以下は実際のThreadsアカウントの投稿です。この文体・トーン・表現スタイルを完全に模倣して書いてください。
 
-【投稿例】
+【実際の投稿例】
 ${examples}
 
-【文体の特徴】
+【守るべき文体の特徴】
 - 短い文を改行で区切るリズム感
-- 読者への直接的な問いかけ（〜してる？〜ですか？）
-- 具体的な数字や食材名を使う
+- 読者への直接的な問いかけ（〜してる？〜ですか？〜ない？）
+- 具体的な数字・食材名・時間帯を使う
 - 最後に一言アクションを促す
 - ハッシュタグなし・絵文字なし
+- 断定的で簡潔な言い切り表現
 `
 
   const prompts = {
