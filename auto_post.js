@@ -186,11 +186,56 @@ ${styleGuide}
   return message.content[0].text.trim()
 }
 
-// リストからランダム取得
-function getRandomPost(timeSlot) {
-  const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
-  const list = posts[timeSlot]
-  return list[Math.floor(Math.random() * list.length)]
+// 閲覧数が多い投稿を取得（昼・夕方用）
+async function getBestPost(timeSlot) {
+  const TOKEN   = process.env.THREADS_ACCESS_TOKEN
+  const USER_ID = process.env.THREADS_USER_ID
+
+  const lunchKeywords    = ["昼", "ランチ", "12時", "食べ", "たんぱく質", "血糖", "定食", "弁当", "昼食"]
+  const afternoonKeywords = ["夕方", "夕食", "間食", "帰り", "退勤", "水分", "運動", "階段", "歩", "17時"]
+  const keywords = timeSlot === "lunch" ? lunchKeywords : afternoonKeywords
+
+  try {
+    // 直近25件の投稿を取得
+    const postsUrl = `https://graph.threads.net/v1.0/${USER_ID}/threads?fields=id,text&limit=25&access_token=${TOKEN}`
+    const postsRes = await threadsGet(postsUrl)
+    const validPosts = (postsRes.data || []).filter((p) => p.text && p.text.length > 10)
+    if (validPosts.length === 0) throw new Error("投稿なし")
+
+    // 各投稿の閲覧数を取得
+    const postsWithViews = await Promise.all(
+      validPosts.map(async (post) => {
+        try {
+          const url = `https://graph.threads.net/v1.0/${post.id}/insights?metric=views&access_token=${TOKEN}`
+          const insights = await threadsGet(url)
+          const item = insights.data?.[0]
+          const views = item?.total_value?.value ?? item?.values?.[0]?.value ?? 0
+          return { text: post.text, views }
+        } catch {
+          return { text: post.text, views: 0 }
+        }
+      })
+    )
+
+    // 閲覧数で降順ソート
+    postsWithViews.sort((a, b) => b.views - a.views)
+
+    // 時間帯に合うキーワードで絞り込み
+    const filtered = postsWithViews.filter((p) => keywords.some((k) => p.text.includes(k)))
+    const top = filtered.length > 0 ? filtered[0] : null
+
+    if (top) {
+      console.log(`閲覧数トップ（${timeSlot}）: ${top.views}回`)
+      return top.text
+    }
+    throw new Error("時間帯に合う投稿なし")
+
+  } catch (e) {
+    console.log(`閲覧数取得失敗、posts.jsonからランダム選択: ${e.message}`)
+    const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
+    const list = posts[timeSlot]
+    return list[Math.floor(Math.random() * list.length)]
+  }
 }
 
 // 現在の JST 時間に応じてコンテンツを決定
@@ -202,11 +247,11 @@ async function getContent() {
     console.log("タイプ: AI生成（朝）")
     return await generateWithClaude("morning")
   } else if (jstHour >= 11 && jstHour < 14) {
-    console.log("タイプ: ランダム（昼）")
-    return getRandomPost("lunch")
+    console.log("タイプ: 閲覧数トップ（昼）")
+    return await getBestPost("lunch")
   } else if (jstHour >= 16 && jstHour < 19) {
-    console.log("タイプ: ランダム（夕）")
-    return getRandomPost("afternoon")
+    console.log("タイプ: 閲覧数トップ（夕）")
+    return await getBestPost("afternoon")
   } else if (jstHour >= 20 && jstHour < 23) {
     console.log("タイプ: AI生成（夜）")
     return await generateWithClaude("evening")
