@@ -6,7 +6,16 @@ on:
     - cron: '0 3 * * *'    # 毎日 12:00 JST
     - cron: '0 8 * * *'    # 毎日 17:00 JST
     - cron: '0 12 * * *'   # 毎日 21:00 JST
-  workflow_dispatch:        # 手動実行ボタン
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'プレビューのみ（投稿しない）'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   post:
@@ -27,3 +36,4 @@ jobs:
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}

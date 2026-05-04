@@ -173,6 +173,11 @@ async function main() {
   console.log(text)
   console.log("----------------\n")
 
+  if (process.env.DRY_RUN === "true") {
+    console.log("※ プレビューモード：投稿はしていません")
+    return
+  }
+
   const postId = await postToThreads(text)
   console.log("投稿成功！ID:", postId)
 }
