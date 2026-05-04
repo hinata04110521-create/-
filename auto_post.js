@@ -55,25 +55,40 @@ async function generateWithClaude(timeSlot) {
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY が設定されていません")
   const client = new Anthropic({ apiKey })
 
+  const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
+  const examples = [...posts.lunch, ...posts.afternoon].slice(0, 6).join("\n\n---\n\n")
+
+  const styleGuide = `
+以下の投稿例を参考に、同じ文体・トーン・表現スタイルで書いてください。
+
+【投稿例】
+${examples}
+
+【文体の特徴】
+- 短い文を改行で区切るリズム感
+- 読者への直接的な問いかけ（〜してる？〜ですか？）
+- 具体的な数字や食材名を使う
+- 最後に一言アクションを促す
+- ハッシュタグなし・絵文字なし
+`
+
   const prompts = {
     morning: `あなたは日本のダイエット・ボディメイク専門家です。
 フォロワーに向けた「朝6時にぴったりの投稿」を作成してください。
-条件：
+${styleGuide}
+追加条件：
 - 朝の始まりにモチベーションが上がる内容
 - 今日1日のダイエット・健康習慣のヒントを含む
-- 200文字以内
-- ハッシュタグなし
-- 自然な話し言葉で`,
+- 200文字以内`,
 
     evening: `あなたは日本のダイエット・ボディメイク専門家です。
 フォロワーに向けた「夜21時にぴったりの投稿」を作成してください。
-条件：
+${styleGuide}
+追加条件：
 - 今日1日頑張った人を労う内容
 - 明日への前向きなメッセージを含む
 - 夜の食事・睡眠・明日の準備に関するヒントがあると◎
-- 200文字以内
-- ハッシュタグなし
-- 自然な話し言葉で`,
+- 200文字以内`,
   }
 
   const message = await client.messages.create({
