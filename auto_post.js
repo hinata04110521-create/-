@@ -51,7 +51,9 @@ async function postToThreads(text) {
 // Claude API でテキスト生成
 async function generateWithClaude(timeSlot) {
   const Anthropic = require("@anthropic-ai/sdk")
-  const client = new Anthropic()
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY が設定されていません")
+  const client = new Anthropic({ apiKey })
 
   const prompts = {
     morning: `あなたは日本のダイエット・ボディメイク専門家です。
