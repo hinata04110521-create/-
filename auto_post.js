@@ -191,16 +191,19 @@ async function getBestPost(timeSlot) {
   const TOKEN   = process.env.THREADS_ACCESS_TOKEN
   const USER_ID = process.env.THREADS_USER_ID
 
-  const lunchKeywords    = ["昼", "ランチ", "12時", "食べ", "たんぱく質", "血糖", "定食", "弁当", "昼食"]
-  const afternoonKeywords = ["夕方", "夕食", "間食", "帰り", "退勤", "水分", "運動", "階段", "歩", "17時"]
-  const keywords = timeSlot === "lunch" ? lunchKeywords : afternoonKeywords
+  // 朝・夜に特化した投稿は昼・夕方には使わない（除外キーワード）
+  const morningKeywords = ["おはよう", "朝6時", "朝ごはん", "朝食", "起き"]
+  const eveningKeywords = ["おやすみ", "夜21時", "今日も頑張", "お疲れ様"]
+  const excludeKeywords = timeSlot === "lunch" ? [...morningKeywords, ...eveningKeywords] : [...morningKeywords, ...eveningKeywords]
 
   try {
-    // 直近25件の投稿を取得
-    const postsUrl = `https://graph.threads.net/v1.0/${USER_ID}/threads?fields=id,text&limit=25&access_token=${TOKEN}`
+    // 直近50件の投稿を取得
+    const postsUrl = `https://graph.threads.net/v1.0/${USER_ID}/threads?fields=id,text&limit=50&access_token=${TOKEN}`
     const postsRes = await threadsGet(postsUrl)
-    const validPosts = (postsRes.data || []).filter((p) => p.text && p.text.length > 10)
-    if (validPosts.length === 0) throw new Error("投稿なし")
+    const validPosts = (postsRes.data || []).filter(
+      (p) => p.text && p.text.length > 10 && !excludeKeywords.some((k) => p.text.includes(k))
+    )
+    if (validPosts.length === 0) throw new Error("該当投稿なし")
 
     // 各投稿の閲覧数を取得
     const postsWithViews = await Promise.all(
@@ -210,28 +213,27 @@ async function getBestPost(timeSlot) {
           const insights = await threadsGet(url)
           const item = insights.data?.[0]
           const views = item?.total_value?.value ?? item?.values?.[0]?.value ?? 0
-          return { text: post.text, views }
+          return { text: post.text, views, source: "account" }
         } catch {
-          return { text: post.text, views: 0 }
+          return { text: post.text, views: 0, source: "account" }
         }
       })
     )
 
-    // 閲覧数で降順ソート
-    postsWithViews.sort((a, b) => b.views - a.views)
+    // posts.json の候補も追加（閲覧数0として）
+    const localPosts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
+    const localCandidates = localPosts[timeSlot].map((text) => ({ text, views: 0, source: "local" }))
 
-    // 時間帯に合うキーワードで絞り込み
-    const filtered = postsWithViews.filter((p) => keywords.some((k) => p.text.includes(k)))
-    const top = filtered.length > 0 ? filtered[0] : null
+    // 合わせて閲覧数で降順ソート（同数ならアカウント投稿を優先）
+    const all = [...postsWithViews, ...localCandidates]
+    all.sort((a, b) => b.views - a.views || (a.source === "account" ? -1 : 1))
 
-    if (top) {
-      console.log(`閲覧数トップ（${timeSlot}）: ${top.views}回`)
-      return top.text
-    }
-    throw new Error("時間帯に合う投稿なし")
+    const top = all[0]
+    console.log(`選択（${timeSlot}）: ${top.source} / 閲覧数 ${top.views}回`)
+    return top.text
 
   } catch (e) {
-    console.log(`閲覧数取得失敗、posts.jsonからランダム選択: ${e.message}`)
+    console.log(`投稿取得失敗、posts.jsonからランダム選択: ${e.message}`)
     const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
     const list = posts[timeSlot]
     return list[Math.floor(Math.random() * list.length)]
