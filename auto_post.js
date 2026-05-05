@@ -192,9 +192,9 @@ async function getBestPost(timeSlot) {
   const USER_ID = process.env.THREADS_USER_ID
 
   // 朝・夜に特化した投稿は昼・夕方には使わない（除外キーワード）
-  const morningKeywords = ["おはよう", "朝6時", "朝ごはん", "朝食", "起き"]
+  const morningKeywords = ["おはよう", "朝6時", "朝ごはん", "朝食", "起き", "朝に", "朝は", "朝の", "朝、", "朝タン", "朝パン", "朝通勤", "朝ルーティン", "今朝"]
   const eveningKeywords = ["おやすみ", "夜21時", "今日も頑張", "お疲れ様"]
-  const excludeKeywords = timeSlot === "lunch" ? [...morningKeywords, ...eveningKeywords] : [...morningKeywords, ...eveningKeywords]
+  const excludeKeywords = [...morningKeywords, ...eveningKeywords]
 
   try {
     // 直近50件の投稿を取得
