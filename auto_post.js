@@ -228,9 +228,11 @@ async function getBestPost(timeSlot) {
     const all = [...postsWithViews, ...localCandidates]
     all.sort((a, b) => b.views - a.views || (a.source === "account" ? -1 : 1))
 
-    const top = all[0]
-    console.log(`選択（${timeSlot}）: ${top.source} / 閲覧数 ${top.views}回`)
-    return top.text
+    // トップ5の中からランダムに選ぶ（毎回同じにならないように）
+    const top5 = all.slice(0, 5)
+    const picked = top5[Math.floor(Math.random() * top5.length)]
+    console.log(`選択（${timeSlot}）: ${picked.source} / 閲覧数 ${picked.views}回`)
+    return picked.text
 
   } catch (e) {
     console.log(`投稿取得失敗、posts.jsonからランダム選択: ${e.message}`)
