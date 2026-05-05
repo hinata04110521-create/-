@@ -245,20 +245,18 @@ async function getContent() {
   const jstHour = (new Date().getUTCHours() + 9) % 24
   console.log(`JST: ${jstHour}時`)
 
-  if (jstHour >= 5 && jstHour < 8) {
+  if (jstHour >= 4 && jstHour < 10) {
     console.log("タイプ: AI生成（朝）")
     return await generateWithClaude("morning")
-  } else if (jstHour >= 11 && jstHour < 14) {
+  } else if (jstHour >= 10 && jstHour < 16) {
     console.log("タイプ: 閲覧数トップ（昼）")
     return await getBestPost("lunch")
-  } else if (jstHour >= 16 && jstHour < 19) {
+  } else if (jstHour >= 16 && jstHour < 21) {
     console.log("タイプ: 閲覧数トップ（夕）")
     return await getBestPost("afternoon")
-  } else if (jstHour >= 20 && jstHour < 23) {
+  } else {
     console.log("タイプ: AI生成（夜）")
     return await generateWithClaude("evening")
-  } else {
-    throw new Error(`対応外の時間帯: JST ${jstHour}時`)
   }
 }
 
