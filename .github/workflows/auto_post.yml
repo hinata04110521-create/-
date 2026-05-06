@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'プレビューのみ（投稿しない）'
+        description: '投稿しない（プレビューのみ）にする場合はtrueを選択'
         required: false
         default: 'false'
         type: choice
