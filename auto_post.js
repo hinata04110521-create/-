@@ -270,18 +270,25 @@ async function getContent() {
 }
 
 async function main() {
-  const text = await getContent()
-  console.log("\n--- 投稿内容 ---")
-  console.log(text)
-  console.log("----------------\n")
+  const totalPosts = 4
 
-  if (process.env.DRY_RUN === "true") {
-    console.log("※ プレビューモード：投稿はしていません")
-    return
+  for (let i = 1; i <= totalPosts; i++) {
+    console.log(`\n===== 投稿 ${i}/${totalPosts} =====`)
+    const text = await getContent()
+    console.log("\n--- 投稿内容 ---")
+    console.log(text)
+    console.log("----------------\n")
+
+    if (process.env.DRY_RUN === "true") {
+      console.log(`※ プレビューモード：投稿 ${i} はしていません`)
+    } else {
+      const postId = await postToThreads(text)
+      console.log(`投稿成功！ ${i}/${totalPosts} ID:`, postId)
+    }
+
+    // 投稿間隔（レート制限対策）
+    if (i < totalPosts) await new Promise((r) => setTimeout(r, 5000))
   }
-
-  const postId = await postToThreads(text)
-  console.log("投稿成功！ID:", postId)
 }
 
 main().catch((err) => {
