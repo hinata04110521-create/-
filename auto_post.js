@@ -110,6 +110,19 @@ ${examples}
 - 断定的で簡潔な言い切り表現
 `
 
+  const lunchTopics = [
+    "血糖値の乱高下を抑える食べ方・食事の選び方（眠気を防いでダイエットにも効果的）",
+    "40・50代女性に合った痩せるランチの選び方",
+    "お昼にたんぱく質を摂ると午後が変わる理由",
+    "コンビニランチで太らない選び方",
+    "食後の眠気を防ぐ昼食の食べ方",
+    "外食ランチで血糖値を上げない注文の仕方",
+    "昼食を抜くと夜に太る理由",
+    "お昼の炭水化物との正しい付き合い方",
+    "野菜から食べるだけで変わる血糖値コントロール",
+    "40代からの代謝を上げるお昼ごはんの組み合わせ",
+  ]
+
   const morningTopics = [
     "何をしても痩せない40・50代の体の仕組みと対策",
     "腰・膝の痛みがある人でもできる朝の習慣",
@@ -145,6 +158,7 @@ ${examples}
   ]
 
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
+  const lunchTopic = pick(lunchTopics)
   const morningTopic = pick(morningTopics)
   const eveningTopic = pick(eveningTopics)
 
@@ -168,6 +182,16 @@ ${styleGuide}
 追加条件：
 - 不安や悩みに寄り添いながら、今日一歩踏み出せる内容
 - 難しいことは言わない。今日すぐできる小さなことを伝える
+- 200文字以内`,
+
+    lunch: `あなたは40・50代女性専門のダイエットサポーターです。
+${audience}
+このターゲットに向けた「昼12時の投稿」を作成してください。
+${styleGuide}
+今回のテーマ：「${lunchTopic}」
+追加条件：
+- お昼の食事・食べ方に関する具体的なアドバイス
+- 今日のランチから実践できる内容
 - 200文字以内`,
 
     evening: `あなたは40・50代女性専門のダイエットサポーターです。
@@ -255,8 +279,8 @@ async function getContent() {
     console.log("タイプ: AI生成（朝）")
     return await generateWithClaude("morning")
   } else if (jstHour >= 10 && jstHour < 16) {
-    console.log("タイプ: 閲覧数トップ（昼）")
-    return await getBestPost("lunch")
+    console.log("タイプ: AI生成（昼）")
+    return await generateWithClaude("lunch")
   } else if (jstHour >= 16 && jstHour < 21) {
     console.log("タイプ: 閲覧数トップ（夕）")
     return await getBestPost("afternoon")
