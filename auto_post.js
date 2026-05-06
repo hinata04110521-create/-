@@ -335,7 +335,7 @@ async function getContent() {
 }
 
 async function main() {
-  const totalPosts = 4
+  const totalPosts = 8
 
   for (let i = 1; i <= totalPosts; i++) {
     console.log(`\n===== 投稿 ${i}/${totalPosts} =====`)
