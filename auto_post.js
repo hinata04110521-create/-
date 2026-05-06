@@ -257,6 +257,13 @@ async function getContent() {
     console.log("タイプ: 閲覧数トップ（夕）")
     return await getBestPost("afternoon")
   } else {
+    // 夜はAI生成とposts.jsonをランダムに使う
+    const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
+    const useFixed = posts.evening && posts.evening.length > 0 && Math.random() < 0.5
+    if (useFixed) {
+      console.log("タイプ: 固定投稿（夜）")
+      return posts.evening[Math.floor(Math.random() * posts.evening.length)]
+    }
     console.log("タイプ: AI生成（夜）")
     return await generateWithClaude("evening")
   }
