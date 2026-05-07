@@ -1,11 +1,6 @@
 name: Threads 自動投稿
 
 on:
-  schedule:
-    - cron: '0 21 * * *'   # 毎日 6:00 JST
-    - cron: '0 3 * * *'    # 毎日 12:00 JST
-    - cron: '0 8 * * *'    # 毎日 17:00 JST
-    - cron: '0 12 * * *'   # 毎日 21:00 JST
   workflow_dispatch:
     inputs:
       dry_run:
