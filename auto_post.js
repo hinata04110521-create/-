@@ -210,7 +210,7 @@ REPLY:
 }
 
 // Claude API でテキスト生成
-async function generateWithClaude(timeSlot) {
+async function generateWithClaude(timeSlot, topicIndex = 0, alreadyGenerated = []) {
   const Anthropic = require("@anthropic-ai/sdk")
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY が設定されていません")
@@ -316,11 +316,11 @@ ${examples}
     "夜に自分を責めないことがダイエット成功のカギ",
   ]
 
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
-  const afternoonTopic = pick(afternoonTopics)
-  const lunchTopic = pick(lunchTopics)
-  const morningTopic = pick(morningTopics)
-  const eveningTopic = pick(eveningTopics)
+  // topicIndexを使って順番にトピックを選ぶ（8投稿で重複しない）
+  const afternoonTopic = afternoonTopics[topicIndex % afternoonTopics.length]
+  const lunchTopic = lunchTopics[topicIndex % lunchTopics.length]
+  const morningTopic = morningTopics[topicIndex % morningTopics.length]
+  const eveningTopic = eveningTopics[topicIndex % eveningTopics.length]
 
   const audience = `
 【発信ターゲット】
@@ -333,12 +333,21 @@ ${examples}
 - でも健康でいたい、家族のためにも変わりたいと思っている
 `
 
+  // 既に生成した投稿を「避けるべき例」としてプロンプトに追加
+  const avoidSection = alreadyGenerated.length > 0 ? `
+【以下の投稿と似た内容・表現・構成は絶対に使わないこと】
+${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
+
+上記と異なるテーマ・切り口・表現で書いてください。
+` : ""
+
   const prompts = {
     morning: `あなたは40・50代女性専門のダイエットサポーターです。
 ${audience}
 このターゲットに向けた「朝6時の投稿」を作成してください。
 ${styleGuide}
 今回のテーマ：「${morningTopic}」
+${avoidSection}
 追加条件：
 - 不安や悩みに寄り添いながら、今日一歩踏み出せる内容
 - 難しいことは言わない。今日すぐできる小さなことを伝える
@@ -350,6 +359,7 @@ ${audience}
 このターゲットに向けた「夕方17時の投稿」を作成してください。
 ${styleGuide}
 今回のテーマ：「${afternoonTopic}」
+${avoidSection}
 追加条件：
 - 夕食前の時間帯に役立つ具体的なアドバイス
 - 今日の夕方からすぐ実践できる内容
@@ -361,6 +371,7 @@ ${audience}
 このターゲットに向けた「昼12時の投稿」を作成してください。
 ${styleGuide}
 今回のテーマ：「${lunchTopic}」
+${avoidSection}
 追加条件：
 - お昼の食事・食べ方に関する具体的なアドバイス
 - 今日のランチから実践できる内容
@@ -372,6 +383,7 @@ ${audience}
 このターゲットに向けた「夜21時の投稿」を作成してください。
 ${styleGuide}
 今回のテーマ：「${eveningTopic}」
+${avoidSection}
 追加条件：
 - 今日うまくいかなかった人も救える内容
 - 明日への小さな希望を持てるメッセージ
@@ -445,20 +457,20 @@ async function getBestPost(timeSlot) {
 }
 
 // 現在の JST 時間に応じてコンテンツを決定
-async function getContent() {
+async function getContent(topicIndex = 0, alreadyGenerated = []) {
   const jstHour = (new Date().getUTCHours() + 9) % 24
   console.log(`JST: ${jstHour}時`)
 
   if (jstHour >= 4 && jstHour < 10) {
     // 朝はmain()で直接処理するためここには来ないが念のため
     console.log("タイプ: AI生成（朝）")
-    return await generateWithClaude("morning")
+    return await generateWithClaude("morning", topicIndex, alreadyGenerated)
   } else if (jstHour >= 10 && jstHour < 16) {
     console.log("タイプ: AI生成（昼）")
-    return await generateWithClaude("lunch")
+    return await generateWithClaude("lunch", topicIndex, alreadyGenerated)
   } else if (jstHour >= 16 && jstHour < 21) {
     console.log("タイプ: AI生成（夕）")
-    return await generateWithClaude("afternoon")
+    return await generateWithClaude("afternoon", topicIndex, alreadyGenerated)
   } else {
     // 夜はAI生成とposts.jsonをランダムに使う
     const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
@@ -468,7 +480,7 @@ async function getContent() {
       return posts.evening[Math.floor(Math.random() * posts.evening.length)]
     }
     console.log("タイプ: AI生成（夜）")
-    return await generateWithClaude("evening")
+    return await generateWithClaude("evening", topicIndex, alreadyGenerated)
   }
 }
 
@@ -476,6 +488,7 @@ async function main() {
   const totalPosts = 8
   const jstHour = (new Date().getUTCHours() + 9) % 24
   const isMorning = jstHour >= 4 && jstHour < 10
+  const alreadyGenerated = [] // 生成済み投稿を蓄積（重複防止用）
 
   for (let i = 1; i <= totalPosts; i++) {
     console.log(`\n===== 投稿 ${i}/${totalPosts} =====`)
@@ -493,12 +506,12 @@ async function main() {
         replyText = post.reply || null
       } else {
         console.log("タイプ: AI生成（朝）")
-        const generated = await generateMorningPost()
+        const generated = await generateMorningPost(i - 1, alreadyGenerated)
         mainText = generated.main
         replyText = generated.reply
       }
     } else {
-      mainText = await getContent()
+      mainText = await getContent(i - 1, alreadyGenerated)
     }
 
     console.log("\n--- メイン投稿 ---")
@@ -508,6 +521,9 @@ async function main() {
       console.log(replyText)
     }
     console.log("----------------\n")
+
+    // 生成済みリストに追加（次の投稿の重複防止に使用）
+    alreadyGenerated.push(mainText)
 
     if (process.env.DRY_RUN === "true") {
       console.log(`※ プレビューモード：投稿 ${i} はしていません`)
