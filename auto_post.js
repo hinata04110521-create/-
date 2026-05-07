@@ -317,6 +317,12 @@ async function getContent() {
   console.log(`JST: ${jstHour}時`)
 
   if (jstHour >= 4 && jstHour < 10) {
+    const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
+    const useFixed = posts.morning && posts.morning.length > 0 && Math.random() < 0.5
+    if (useFixed) {
+      console.log("タイプ: 固定投稿（朝）")
+      return posts.morning[Math.floor(Math.random() * posts.morning.length)]
+    }
     console.log("タイプ: AI生成（朝）")
     return await generateWithClaude("morning")
   } else if (jstHour >= 10 && jstHour < 16) {
