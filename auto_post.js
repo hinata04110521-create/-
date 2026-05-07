@@ -76,6 +76,139 @@ async function postToThreads(text) {
   return result.id
 }
 
+// Threads にメイン投稿＋返信を投稿
+async function postToThreadsWithReply(mainText, replyText) {
+  const TOKEN   = process.env.THREADS_ACCESS_TOKEN
+  const USER_ID = process.env.THREADS_USER_ID
+  const BASE    = "https://graph.threads.net/v1.0"
+
+  // メイン投稿
+  const container = await threadsFetch(`${BASE}/${USER_ID}/threads`, {
+    media_type: "TEXT",
+    text: mainText,
+    access_token: TOKEN,
+  })
+  if (container.error) throw new Error(container.error.message)
+
+  await new Promise((r) => setTimeout(r, 5000))
+
+  const result = await threadsFetch(`${BASE}/${USER_ID}/threads_publish`, {
+    creation_id: container.id,
+    access_token: TOKEN,
+  })
+  if (result.error) throw new Error(result.error.message)
+
+  const postId = result.id
+  console.log(`メイン投稿完了: ${postId}`)
+
+  // 返信投稿
+  if (replyText) {
+    await new Promise((r) => setTimeout(r, 3000))
+
+    const replyContainer = await threadsFetch(`${BASE}/${USER_ID}/threads`, {
+      media_type: "TEXT",
+      text: replyText,
+      reply_to_id: postId,
+      access_token: TOKEN,
+    })
+    if (replyContainer.error) throw new Error(replyContainer.error.message)
+
+    await new Promise((r) => setTimeout(r, 5000))
+
+    const replyResult = await threadsFetch(`${BASE}/${USER_ID}/threads_publish`, {
+      creation_id: replyContainer.id,
+      access_token: TOKEN,
+    })
+    if (replyResult.error) throw new Error(replyResult.error.message)
+
+    console.log(`返信投稿完了: ${replyResult.id}`)
+  }
+
+  return postId
+}
+
+// 朝の投稿（メイン＋返信）をAIで生成
+async function generateMorningPost() {
+  const Anthropic = require("@anthropic-ai/sdk")
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY が設定されていません")
+  const client = new Anthropic({ apiKey })
+
+  const morningTopics = [
+    "何をしても痩せない40・50代の体の仕組みと対策",
+    "腰・膝の痛みがある人でもできる朝の習慣",
+    "血糖値・コレステロールを食事で改善する方法",
+    "更年期太りに効くたんぱく質の朝食",
+    "代謝が落ちた体でも痩せる朝のルーティン",
+    "先生に痩せろと言われたあなたへの最初の一歩",
+    "病気になる前に変えられる朝の食べ方",
+    "40代から筋肉を守る朝食の選び方",
+    "血液検査の数値を改善するための朝の習慣",
+    "体が重くて動けない人でも続けられる朝のこと",
+    "更年期・ホルモン変化と体重増加の正しい理解",
+    "朝の体重に一喜一憂しなくていい理由",
+    "朝の通勤でできる手軽なエクササイズ",
+    "40・50代女性に合った痩せる朝ごはんのメニュー",
+    "通勤中に消費カロリーを増やす小さな工夫",
+    "朝ごはんを食べると痩せる理由と理想の組み合わせ",
+  ]
+
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
+  const topic = pick(morningTopics)
+
+  const audience = `
+【発信ターゲット】
+- 40代・50代の女性
+- 何をしても痩せない、ダイエットに何度も挑戦して失敗してきた
+- 体重が重くて腰や膝に痛みがある
+- 血液検査の数値が悪く、医師に痩せるよう言われている
+- 糖尿病・高血圧・脂肪肝など病気への不安がある
+- 「もう自分には無理かも」と諦めかけている
+- でも健康でいたい、家族のためにも変わりたいと思っている
+`
+
+  const prompt = `あなたは40・50代女性専門のダイエットサポーターです。
+${audience}
+
+朝6時のThreads投稿を以下の形式で作成してください。
+
+【メイン投稿のルール】
+- 「３ヶ月でー５キロ痩せたい40代・50代女性は〇〇でこれを意識してください」のような形式
+- 1〜2行でシンプルに
+- 読者が「続きを読みたい」と思う一言
+
+【返信投稿のルール】
+- メイン投稿の具体的な内容を番号リストで
+- ① 〇〇 → 〇〇 の形式で3〜5項目
+- ハッシュタグなし・絵文字なし
+- 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない
+
+今回のテーマ：「${topic}」
+
+以下の形式で出力してください（MAIN:とREPLY:の文字はそのまま残してください）：
+MAIN:
+（メイン投稿の内容）
+
+REPLY:
+（返信投稿の内容）`
+
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 800,
+    messages: [{ role: "user", content: prompt }],
+  })
+
+  const text = message.content[0].text.trim()
+
+  const mainMatch = text.match(/MAIN:\n([\s\S]*?)(?=\nREPLY:)/)
+  const replyMatch = text.match(/REPLY:\n([\s\S]*)/)
+
+  const main = mainMatch ? mainMatch[1].trim() : text
+  const reply = replyMatch ? replyMatch[1].trim() : null
+
+  return { main, reply }
+}
+
 // Claude API でテキスト生成
 async function generateWithClaude(timeSlot) {
   const Anthropic = require("@anthropic-ai/sdk")
@@ -317,12 +450,7 @@ async function getContent() {
   console.log(`JST: ${jstHour}時`)
 
   if (jstHour >= 4 && jstHour < 10) {
-    const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
-    const useFixed = posts.morning && posts.morning.length > 0 && Math.random() < 0.5
-    if (useFixed) {
-      console.log("タイプ: 固定投稿（朝）")
-      return posts.morning[Math.floor(Math.random() * posts.morning.length)]
-    }
+    // 朝はmain()で直接処理するためここには来ないが念のため
     console.log("タイプ: AI生成（朝）")
     return await generateWithClaude("morning")
   } else if (jstHour >= 10 && jstHour < 16) {
@@ -346,19 +474,50 @@ async function getContent() {
 
 async function main() {
   const totalPosts = 8
+  const jstHour = (new Date().getUTCHours() + 9) % 24
+  const isMorning = jstHour >= 4 && jstHour < 10
 
   for (let i = 1; i <= totalPosts; i++) {
     console.log(`\n===== 投稿 ${i}/${totalPosts} =====`)
-    const text = await getContent()
-    console.log("\n--- 投稿内容 ---")
-    console.log(text)
+
+    let mainText, replyText = null
+
+    if (isMorning) {
+      // 朝：固定投稿かAI生成をランダムで選択
+      const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
+      const useFixed = posts.morning && posts.morning.length > 0 && Math.random() < 0.5
+      if (useFixed) {
+        console.log("タイプ: 固定投稿（朝）")
+        const post = posts.morning[Math.floor(Math.random() * posts.morning.length)]
+        mainText = post.main
+        replyText = post.reply || null
+      } else {
+        console.log("タイプ: AI生成（朝）")
+        const generated = await generateMorningPost()
+        mainText = generated.main
+        replyText = generated.reply
+      }
+    } else {
+      mainText = await getContent()
+    }
+
+    console.log("\n--- メイン投稿 ---")
+    console.log(mainText)
+    if (replyText) {
+      console.log("\n--- 返信投稿 ---")
+      console.log(replyText)
+    }
     console.log("----------------\n")
 
     if (process.env.DRY_RUN === "true") {
       console.log(`※ プレビューモード：投稿 ${i} はしていません`)
     } else {
-      const postId = await postToThreads(text)
-      console.log(`投稿成功！ ${i}/${totalPosts} ID:`, postId)
+      if (replyText) {
+        await postToThreadsWithReply(mainText, replyText)
+      } else {
+        await postToThreads(mainText)
+      }
+      console.log(`投稿成功！ ${i}/${totalPosts}`)
     }
 
     // 投稿間隔（レート制限対策）
