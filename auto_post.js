@@ -627,12 +627,12 @@ async function getContent(topicIndex = 0, alreadyGenerated = []) {
     console.log("タイプ: AI生成（夕）")
     return await generateWithClaude("afternoon", topicIndex, alreadyGenerated)
   } else {
-    // 夜はAI生成とposts.jsonをランダムに使う
+    // 夜：最初のN件は固定投稿を順番に使い、残りはAI生成
     const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
-    const useFixed = posts.evening && posts.evening.length > 0 && Math.random() < 0.5
-    if (useFixed) {
+    const fixedEvening = posts.evening || []
+    if (topicIndex < fixedEvening.length) {
       console.log("タイプ: 固定投稿（夜）")
-      return posts.evening[Math.floor(Math.random() * posts.evening.length)]
+      return fixedEvening[topicIndex]
     }
     console.log("タイプ: AI生成（夜）")
     return await generateWithClaude("evening", topicIndex, alreadyGenerated)
