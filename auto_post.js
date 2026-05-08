@@ -128,7 +128,7 @@ async function postToThreadsWithReply(mainText, replyText) {
 }
 
 // 朝の投稿（メイン＋返信）をAIで生成
-async function generateMorningPost() {
+async function generateMorningPost(topicIndex = 0, alreadyGenerated = []) {
   const Anthropic = require("@anthropic-ai/sdk")
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY が設定されていません")
@@ -153,8 +153,16 @@ async function generateMorningPost() {
     "朝ごはんを食べると痩せる理由と理想の組み合わせ",
   ]
 
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
-  const topic = pick(morningTopics)
+  // topicIndexで順番にトピックを選ぶ（重複しない）
+  const topic = morningTopics[topicIndex % morningTopics.length]
+
+  // 既に生成した投稿を「避けるべき例」として追加
+  const avoidSection = alreadyGenerated.length > 0 ? `
+【以下の投稿と似た内容・表現・構成は絶対に使わないこと】
+${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
+
+上記と異なるテーマ・切り口・表現で書いてください。
+` : ""
 
   const audience = `
 【発信ターゲット】
@@ -184,6 +192,7 @@ ${audience}
 - 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない
 
 今回のテーマ：「${topic}」
+${avoidSection}
 
 以下の形式で出力してください（MAIN:とREPLY:の文字はそのまま残してください）：
 MAIN:
@@ -496,12 +505,12 @@ async function main() {
     let mainText, replyText = null
 
     if (isMorning) {
-      // 朝：固定投稿かAI生成をランダムで選択
       const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
-      const useFixed = posts.morning && posts.morning.length > 0 && Math.random() < 0.5
-      if (useFixed) {
+      const fixedPosts = posts.morning || []
+      // 最初のN件は固定投稿を順番に使い、残りはAI生成
+      if (i - 1 < fixedPosts.length) {
         console.log("タイプ: 固定投稿（朝）")
-        const post = posts.morning[Math.floor(Math.random() * posts.morning.length)]
+        const post = fixedPosts[i - 1]
         mainText = post.main
         replyText = post.reply || null
       } else {
