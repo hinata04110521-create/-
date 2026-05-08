@@ -225,6 +225,14 @@ async function generateMorningPost(topicIndex = 0, alreadyGenerated = []) {
   // topicIndexで順番にトピックを選ぶ（重複しない）
   const topic = morningTopics[topicIndex % morningTopics.length]
 
+  // Tavilyでネット検索
+  console.log(`朝「${topic}」を検索中...`)
+  const searchResult = await searchWeb(`${topic} ダイエット 血糖値 糖尿病 高血圧 コレステロール 健康 40代 50代 女性 最新`)
+  const searchSection = searchResult ? `
+【最新のネット情報（参考にしてください）】
+${searchResult}
+` : ""
+
   // 既に生成した投稿を「避けるべき例」として追加
   const avoidSection = alreadyGenerated.length > 0 ? `
 【以下の投稿と似た内容・表現・構成は絶対に使わないこと】
@@ -248,15 +256,15 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 ${audience}
 
 朝6時のThreads投稿を以下の形式で作成してください。
-
+${searchSection}
 【メイン投稿のルール】
 - 「３ヶ月でー５キロ痩せたい40代・50代女性は〇〇でこれを意識してください」のような形式
-- 1〜2行でシンプルに
+- 1〜2行・100文字以内でシンプルに
 - 読者が「続きを読みたい」と思う一言
 
 【返信投稿のルール】
 - メイン投稿の具体的な内容を番号リストで
-- ① 〇〇 → 〇〇 の形式で3〜5項目
+- ① 〇〇 → 〇〇 の形式で必ず3項目のみ（500文字以内に収める）
 - ハッシュタグなし・絵文字なし
 - 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない
 
