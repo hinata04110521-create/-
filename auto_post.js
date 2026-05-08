@@ -36,7 +36,7 @@ function threadsGet(url) {
   })
 }
 
-// Tavily APIでネット検索
+// Tavily APIでネット検索（タイムアウト8秒）
 async function searchWeb(query) {
   const apiKey = process.env.TAVILY_API_KEY
   if (!apiKey) {
@@ -48,10 +48,10 @@ async function searchWeb(query) {
       api_key: apiKey,
       query: query,
       search_depth: "basic",
-      max_results: 3,
+      max_results: 2,
       include_answer: true,
     })
-    const result = await new Promise((resolve, reject) => {
+    const fetchPromise = new Promise((resolve) => {
       const options = {
         method: "POST",
         headers: {
@@ -65,13 +65,16 @@ async function searchWeb(query) {
         res.on("end", () => { try { resolve(JSON.parse(data)) } catch { resolve(null) } })
       })
       req.on("error", () => resolve(null))
+      req.setTimeout(8000, () => { req.destroy(); resolve(null) })
       req.write(body)
       req.end()
     })
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 8000))
+    const result = await Promise.race([fetchPromise, timeoutPromise])
     if (!result) return ""
     const answer = result.answer || ""
     const snippets = (result.results || []).map((r) => r.content || "").join(" ")
-    return (answer + " " + snippets).slice(0, 800)
+    return (answer + " " + snippets).slice(0, 600)
   } catch (e) {
     console.log("検索エラー（スキップ）:", e.message)
     return ""
