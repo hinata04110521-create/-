@@ -627,13 +627,7 @@ async function getContent(topicIndex = 0, alreadyGenerated = []) {
     console.log("タイプ: AI生成（夕）")
     return await generateWithClaude("afternoon", topicIndex, alreadyGenerated)
   } else {
-    // 夜：最初のN件は固定投稿を順番に使い、残りはAI生成
-    const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
-    const fixedEvening = posts.evening || []
-    if (topicIndex < fixedEvening.length) {
-      console.log("タイプ: 固定投稿（夜）")
-      return fixedEvening[topicIndex]
-    }
+    // 夜：全件AI生成＋Tavily検索（血糖値・健康テーマを含む）
     console.log("タイプ: AI生成（夜）")
     return await generateWithClaude("evening", topicIndex, alreadyGenerated)
   }
