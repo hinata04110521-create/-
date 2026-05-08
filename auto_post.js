@@ -36,6 +36,48 @@ function threadsGet(url) {
   })
 }
 
+// Tavily APIでネット検索
+async function searchWeb(query) {
+  const apiKey = process.env.TAVILY_API_KEY
+  if (!apiKey) {
+    console.log("TAVILY_API_KEY未設定のためスキップ")
+    return ""
+  }
+  try {
+    const body = JSON.stringify({
+      api_key: apiKey,
+      query: query,
+      search_depth: "basic",
+      max_results: 3,
+      include_answer: true,
+    })
+    const result = await new Promise((resolve, reject) => {
+      const options = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+        },
+      }
+      const req = https.request("https://api.tavily.com/search", options, (res) => {
+        let data = ""
+        res.on("data", (chunk) => (data += chunk))
+        res.on("end", () => { try { resolve(JSON.parse(data)) } catch { resolve(null) } })
+      })
+      req.on("error", () => resolve(null))
+      req.write(body)
+      req.end()
+    })
+    if (!result) return ""
+    const answer = result.answer || ""
+    const snippets = (result.results || []).map((r) => r.content || "").join(" ")
+    return (answer + " " + snippets).slice(0, 800)
+  } catch (e) {
+    console.log("検索エラー（スキップ）:", e.message)
+    return ""
+  }
+}
+
 // 自分のThreads投稿を最大50件取得
 async function fetchMyPosts() {
   const TOKEN   = process.env.THREADS_ACCESS_TOKEN
@@ -387,6 +429,17 @@ ${examples}
   const morningTopic = morningTopics[topicIndex % morningTopics.length]
   const eveningTopic = eveningTopics[topicIndex % eveningTopics.length]
 
+  const topicMap = { morning: morningTopic, lunch: lunchTopic, afternoon: afternoonTopic, evening: eveningTopic }
+  const currentTopic = topicMap[timeSlot]
+
+  // Tavilyでネット検索
+  console.log(`「${currentTopic}」を検索中...`)
+  const searchResult = await searchWeb(`${currentTopic} ダイエット 40代 50代 女性 最新`)
+  const searchSection = searchResult ? `
+【最新のネット情報（参考にしてください）】
+${searchResult}
+` : ""
+
   const audience = `
 【発信ターゲット】
 - 40代・50代の女性
@@ -406,54 +459,48 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 上記と異なるテーマ・切り口・表現で書いてください。
 ` : ""
 
+  const commonConditions = `
+- ダイエットに役立つ情報・知識・アドバイスを幅広く扱う
+- 読んですぐ「やってみよう」と思える具体的な内容
+- 短く簡潔に（改行含め5行以内）
+- 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない`
+
   const prompts = {
     morning: `あなたは40・50代女性専門のダイエットサポーターです。
 ${audience}
 このターゲットに向けた「朝6時の投稿」を作成してください。
 ${styleGuide}
 今回のテーマ：「${morningTopic}」
+${searchSection}
 ${avoidSection}
-追加条件：
-- 朝ネタに限らず、ダイエットに役立つ情報・知識・アドバイスを幅広く扱う
-- 読んですぐ「やってみよう」と思える具体的な内容
-- 60文字以内で簡潔に
-- 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない`,
+追加条件：${commonConditions}`,
 
     afternoon: `あなたは40・50代女性専門のダイエットサポーターです。
 ${audience}
 このターゲットに向けた「夕方17時の投稿」を作成してください。
 ${styleGuide}
 今回のテーマ：「${afternoonTopic}」
+${searchSection}
 ${avoidSection}
-追加条件：
-- 夕方ネタに限らず、ダイエットに役立つ情報・知識・アドバイスを幅広く扱う
-- 読んですぐ「やってみよう」と思える具体的な内容
-- 60文字以内で簡潔に
-- 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない`,
+追加条件：${commonConditions}`,
 
     lunch: `あなたは40・50代女性専門のダイエットサポーターです。
 ${audience}
 このターゲットに向けた「昼12時の投稿」を作成してください。
 ${styleGuide}
 今回のテーマ：「${lunchTopic}」
+${searchSection}
 ${avoidSection}
-追加条件：
-- お昼ネタに限らず、ダイエットに役立つ情報・知識・アドバイスを幅広く扱う
-- 読んですぐ「やってみよう」と思える具体的な内容
-- 60文字以内で簡潔に
-- 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない`,
+追加条件：${commonConditions}`,
 
     evening: `あなたは40・50代女性専門のダイエットサポーターです。
 ${audience}
 このターゲットに向けた「夜21時の投稿」を作成してください。
 ${styleGuide}
 今回のテーマ：「${eveningTopic}」
+${searchSection}
 ${avoidSection}
-追加条件：
-- 夜ネタに限らず、ダイエットに役立つ情報・知識・アドバイスを幅広く扱う
-- 読んですぐ「やってみよう」と思える具体的な内容
-- 60文字以内で簡潔に
-- 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない`,
+追加条件：${commonConditions}`,
   }
 
   const message = await client.messages.create({
