@@ -103,6 +103,12 @@ async function postToThreads(text) {
   const USER_ID = process.env.THREADS_USER_ID
   const BASE    = "https://graph.threads.net/v1.0"
 
+  // Threads APIの500文字制限を超えた場合は自動カット
+  if (text.length > 500) {
+    console.log(`文字数超過(${text.length}文字)のため500文字にカット`)
+    text = text.slice(0, 497) + "…"
+  }
+
   const container = await threadsFetch(`${BASE}/${USER_ID}/threads`, {
     media_type: "TEXT",
     text,
@@ -148,6 +154,10 @@ async function postToThreadsWithReply(mainText, replyText) {
 
   // 返信投稿
   if (replyText) {
+    if (replyText.length > 500) {
+      console.log(`返信文字数超過(${replyText.length}文字)のため500文字にカット`)
+      replyText = replyText.slice(0, 497) + "…"
+    }
     await new Promise((r) => setTimeout(r, 3000))
 
     const replyContainer = await threadsFetch(`${BASE}/${USER_ID}/threads`, {
@@ -493,7 +503,7 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
   const commonConditions = `
 - ダイエットを軸にしながら、血糖値・糖尿病・高血圧・コレステロールなど健康全般の情報も自然に織り交ぜる
 - 読んですぐ「やってみよう」と思える具体的な内容
-- 短く簡潔に（改行含め5行以内）
+- 必ず100文字以内（改行含む）で簡潔に書く
 - 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない`
 
   const prompts = {
