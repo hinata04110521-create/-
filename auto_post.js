@@ -252,9 +252,14 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 - でも健康でいたい、家族のためにも変わりたいと思っている
 `
 
-  // 4投稿に1回、プロフィール・DM誘導を入れる
-  const ctaLine = (topicIndex % 4 === 3)
-    ? "\n- 返信の最後に「気になる方はプロフィールへ」または「詳しく知りたい方はDMをどうぞ」を自然な一文で入れる"
+  // 3投稿に1回、LINE・問い合わせ誘導を入れる
+  const ctaOptions = [
+    "\n- 返信の最後に「あなたに合った方法を知りたい方は、プロフィールのLINEへ」を自然な一文で入れる",
+    "\n- 返信の最後に「個別に相談したい方はDMでお気軽にどうぞ」を自然な一文で入れる",
+    "\n- 返信の最後に「自分の体に何が足りないか知りたい方は、プロフィールからLINEへ」を自然な一文で入れる",
+  ]
+  const ctaLine = (topicIndex % 3 === 2)
+    ? ctaOptions[topicIndex % ctaOptions.length]
     : ""
 
   const prompt = `あなたは40・50代女性専門のダイエットサポーターです。
@@ -519,9 +524,14 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 上記と異なるテーマ・切り口・表現で書いてください。
 ` : ""
 
-  // 4投稿に1回、プロフィール・DM誘導を入れる
-  const ctaLine = (topicIndex % 4 === 3)
-    ? "\n- 最後の一文に「気になる方はプロフィールへ」または「詳しく知りたい方はDMをどうぞ」を自然に入れる"
+  // 3投稿に1回、LINE・問い合わせ誘導を入れる
+  const ctaOptions = [
+    "\n- 最後の一文に「あなたに合った方法を知りたい方は、プロフィールのLINEへ」を自然に入れる",
+    "\n- 最後の一文に「個別に相談したい方はDMでお気軽にどうぞ」を自然に入れる",
+    "\n- 最後の一文に「自分の体に何が足りないか知りたい方は、プロフィールからLINEへ」を自然に入れる",
+  ]
+  const ctaLine = (topicIndex % 3 === 2)
+    ? ctaOptions[topicIndex % ctaOptions.length]
     : ""
 
   const commonConditions = `
