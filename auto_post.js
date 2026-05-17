@@ -540,7 +540,7 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
   const ctaLine = ""  // プロンプトには入れない（コードで付与するため）
 
   const commonConditions = `
-- 全体を必ず3行以内・100文字以内（改行含む）に収めること。これは絶対ルール、超えたら失敗とみなす
+- 全体を3行以内・100文字以内（改行含む）を目標にすること。できる限り100文字に収めるよう努めること
 - 1行目だけで読者のスクロールを止めること（比較型・意外性型・疑問型のどれかを必ず使う）
 - 2行目：根本原因を一言で（短く断言する）
 - 3行目：今日すぐできる行動を一言で
@@ -636,13 +636,27 @@ ${avoidSection}
     .replace(/^(別案[：:・]?|案\d+[：:・]?|パターン\d+[：:・]?)/m, "")
     .trim()
 
-  // 100文字超えたら3行目までで強制カット
-  if (result.length > 100) {
+  // 120文字超えたら3行目までで強制カット（101〜120文字はそのまま通す）
+  if (result.length > 120) {
     const lines = result.split("\n").filter(l => l.trim() !== "")
     result = lines.slice(0, 3).join("\n").trim()
-    // それでも超える場合は100文字でカット
-    if (result.length > 100) {
-      result = result.slice(0, 100).trim()
+    // それでも超える場合は文末記号で自然にカット
+    if (result.length > 120) {
+      const within120 = result.slice(0, 120)
+      // 120文字以内で最後の文末記号（。！？…）を探す
+      const punctMatch = within120.match(/^([\s\S]*[。！？…])/)
+      if (punctMatch && punctMatch[1].length > 20) {
+        result = punctMatch[1].trim()
+      } else {
+        // 文末記号がなければ最後の改行で切る
+        const lastNewline = within120.lastIndexOf("\n")
+        if (lastNewline > 20) {
+          result = result.slice(0, lastNewline).trim()
+        } else {
+          // それもなければ2行までに絞る
+          result = lines.slice(0, 2).join("\n").trim()
+        }
+      }
     }
     console.log(`文字数カット → ${result.length}文字`)
   }
