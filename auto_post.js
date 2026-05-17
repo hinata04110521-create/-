@@ -252,15 +252,14 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 - でも健康でいたい、家族のためにも変わりたいと思っている
 `
 
-  // 3投稿に1回、LINE・問い合わせ誘導を入れる
+  // 2投稿に1回、返信にCTAを追加（コードレベルで付与）
   const ctaOptions = [
-    "\n- 返信の最後に「あなたに合った方法を知りたい方は、プロフィールのLINEへ」を自然な一文で入れる",
-    "\n- 返信の最後に「個別に相談したい方はDMでお気軽にどうぞ」を自然な一文で入れる",
-    "\n- 返信の最後に「自分の体に何が足りないか知りたい方は、プロフィールからLINEへ」を自然な一文で入れる",
+    "あなたに合った方法を知りたい方は、プロフィールのLINEへ。",
+    "個別に相談したい方は、プロフィールのLINEかDMへどうぞ。",
+    "自分に何が足りないか知りたい方は、プロフィールのLINEへ。",
+    "3ヶ月で変わりたい方は、プロフィールのLINEから相談できます。",
   ]
-  const ctaLine = (topicIndex % 3 === 2)
-    ? ctaOptions[topicIndex % ctaOptions.length]
-    : ""
+  const ctaLine = ""  // プロンプトには入れない（コードで付与するため）
 
   const prompt = `あなたは40・50代女性専門のダイエットサポーターです。
 ${audience}
@@ -300,7 +299,14 @@ REPLY:
   const replyMatch = text.match(/REPLY:\n([\s\S]*)/)
 
   const main = mainMatch ? mainMatch[1].trim() : text
-  const reply = replyMatch ? replyMatch[1].trim() : null
+  let reply = replyMatch ? replyMatch[1].trim() : null
+
+  // 2投稿に1回、返信の末尾にCTAを追加
+  if (topicIndex % 2 === 1 && reply) {
+    const cta = ctaOptions[topicIndex % ctaOptions.length]
+    reply = reply + "\n\n" + cta
+    console.log(`朝CTA追加: ${cta}`)
+  }
 
   return { main, reply }
 }
@@ -524,15 +530,14 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 上記と異なるテーマ・切り口・表現で書いてください。
 ` : ""
 
-  // 3投稿に1回、LINE・問い合わせ誘導を入れる
+  // 2投稿に1回、LINE・問い合わせ誘導を追記（コードレベルで付与してカット防止）
   const ctaOptions = [
-    "\n- 最後の一文に「あなたに合った方法を知りたい方は、プロフィールのLINEへ」を自然に入れる",
-    "\n- 最後の一文に「個別に相談したい方はDMでお気軽にどうぞ」を自然に入れる",
-    "\n- 最後の一文に「自分の体に何が足りないか知りたい方は、プロフィールからLINEへ」を自然に入れる",
+    "あなたに合った方法を知りたい方は、プロフィールのLINEへ。",
+    "個別に相談したい方は、プロフィールのLINEかDMへどうぞ。",
+    "自分に何が足りないか知りたい方は、プロフィールのLINEへ。",
+    "3ヶ月で変わりたい方は、プロフィールのLINEから相談できます。",
   ]
-  const ctaLine = (topicIndex % 3 === 2)
-    ? ctaOptions[topicIndex % ctaOptions.length]
-    : ""
+  const ctaLine = ""  // プロンプトには入れない（コードで付与するため）
 
   const commonConditions = `
 - 全体を必ず3行以内・100文字以内（改行含む）に収めること。これは絶対ルール、超えたら失敗とみなす
@@ -640,6 +645,13 @@ ${avoidSection}
       result = result.slice(0, 100).trim()
     }
     console.log(`文字数カット → ${result.length}文字`)
+  }
+
+  // 2投稿に1回、CTAを末尾に追加（カットされないようにコードで付与）
+  if (topicIndex % 2 === 1) {
+    const cta = ctaOptions[topicIndex % ctaOptions.length]
+    result = result + "\n" + cta
+    console.log(`CTA追加: ${cta}`)
   }
 
   return result
