@@ -626,7 +626,7 @@ async function getContent(topicIndex = 0, alreadyGenerated = []) {
 }
 
 async function main() {
-  const totalPosts = 1
+  const totalPosts = 2
   const jstHour = (new Date().getUTCHours() + 9) % 24
   const isMorning = jstHour >= 4 && jstHour < 10
   const alreadyGenerated = []
