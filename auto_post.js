@@ -307,7 +307,7 @@ REPLY:
   const mainMatch = text.match(/MAIN:\n([\s\S]*?)(?=\nREPLY:)/)
   const replyMatch = text.match(/REPLY:\n([\s\S]*)/)
 
-  const main = mainMatch ? mainMatch[1].trim() : text
+  let main = mainMatch ? mainMatch[1].trim() : text
   let reply = replyMatch ? replyMatch[1].trim() : null
 
   // 3投稿に1回、返信の末尾にCTAを追加
@@ -315,6 +315,19 @@ REPLY:
     const cta = ctaOptions[topicIndex % ctaOptions.length]
     reply = reply + "\n\n" + cta
     console.log(`朝CTA追加: ${cta}`)
+  }
+
+  // 3投稿に1回、メイン投稿の冒頭に地域フレーズを追加（CTAと別タイミング）
+  const locationOptions = [
+    "川崎市宮前区エリアで体重が減らなくて悩んでいるあなたへ",
+    "川崎市宮前区エリアで血糖値・血圧が気になって悩んでいるあなたへ",
+    "川崎市宮前区エリアでダイエットに何度も失敗して悩んでいるあなたへ",
+    "川崎市宮前区エリアで膝・腰の痛みと体重増加で悩んでいるあなたへ",
+  ]
+  if (topicIndex % 3 === 0) {
+    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
+    main = location + "\n" + main
+    console.log(`朝地域フレーズ追加: ${location}`)
   }
 
   return { main, reply }
@@ -684,6 +697,19 @@ ${avoidSection}
     const cta = ctaOptions[topicIndex % ctaOptions.length]
     result = result + "\n" + cta
     console.log(`CTA追加: ${cta}`)
+  }
+
+  // 3投稿に1回、冒頭に地域フレーズを追加（CTAと別タイミング）
+  const locationOptions = [
+    "川崎市宮前区エリアで体重が減らなくて悩んでいるあなたへ",
+    "川崎市宮前区エリアで血糖値・血圧が気になって悩んでいるあなたへ",
+    "川崎市宮前区エリアでダイエットに何度も失敗して悩んでいるあなたへ",
+    "川崎市宮前区エリアで膝・腰の痛みと体重増加で悩んでいるあなたへ",
+  ]
+  if (topicIndex % 3 === 0) {
+    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
+    result = location + "\n" + result
+    console.log(`地域フレーズ追加: ${location}`)
   }
 
   return result
