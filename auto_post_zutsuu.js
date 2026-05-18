@@ -473,7 +473,7 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 ② 問い合わせ増加：専門家としての信頼感を自然に滲ませ、プロフィールへ誘導する
 
 【構成ルール】
-- 全体を3行以内・100文字以内（改行含む）を目標にすること
+- 基本は100文字を目安にすること。内容によって100文字を超えてもよいが、必ず文章がキリよく終わる場所で止めること（文の途中で終わらない）
 - 1行目：スクロールを止めるフック。以下のどれかを使う
   ・共感型「〜なのに治らないって、つらいですよね」
   ・あるある型「湿布を貼り続けて10年…それ、根本が違います」
@@ -580,25 +580,17 @@ ${avoidSection}
     .replace(/^(別案[：:・]?|案\d+[：:・]?|パターン\d+[：:・]?)/m, "")
     .trim()
 
-  // 120文字超えたら3行目までで強制カット
-  if (result.length > 120) {
-    const lines = result.split("\n").filter(l => l.trim() !== "")
-    result = lines.slice(0, 3).join("\n").trim()
-    if (result.length > 120) {
-      const within120 = result.slice(0, 120)
-      const punctMatch = within120.match(/^([\s\S]*[。！？…])/)
-      if (punctMatch && punctMatch[1].length > 20) {
-        result = punctMatch[1].trim()
-      } else {
-        const lastNewline = within120.lastIndexOf("\n")
-        if (lastNewline > 20) {
-          result = result.slice(0, lastNewline).trim()
-        } else {
-          result = lines.slice(0, 2).join("\n").trim()
-        }
-      }
+  // 500文字超えたらキリのいいところで強制カット（Threads上限対策）
+  if (result.length > 500) {
+    const within500 = result.slice(0, 500)
+    const punctMatch = within500.match(/^([\s\S]*[。！？…])/)
+    if (punctMatch && punctMatch[1].length > 20) {
+      result = punctMatch[1].trim()
+    } else {
+      const lastNewline = within500.lastIndexOf("\n")
+      result = lastNewline > 20 ? result.slice(0, lastNewline).trim() : within500.trim()
     }
-    console.log(`文字数カット → ${result.length}文字`)
+    console.log(`文字数カット（上限超過）→ ${result.length}文字`)
   }
 
   // 3投稿に1回、CTAを末尾に追加
