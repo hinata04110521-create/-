@@ -310,10 +310,10 @@ REPLY:
   let main = mainMatch ? mainMatch[1].trim() : text
   let reply = replyMatch ? replyMatch[1].trim() : null
 
-  // 3投稿に1回、返信の冒頭にCTAを追加
+  // 3投稿に1回、返信の末尾にCTAを追加
   if (topicIndex % 3 === 2 && reply) {
     const cta = ctaOptions[topicIndex % ctaOptions.length]
-    reply = cta + "\n\n" + reply
+    reply = reply + "\n\n" + cta
     console.log(`朝CTA追加: ${cta}`)
   }
 
@@ -692,10 +692,10 @@ ${avoidSection}
     console.log(`文字数カット → ${result.length}文字`)
   }
 
-  // 3投稿に1回、CTAを冒頭に追加（カットされないようにコードで付与）
+  // 3投稿に1回、CTAを末尾に追加（カットされないようにコードで付与）
   if (topicIndex % 3 === 2) {
     const cta = ctaOptions[topicIndex % ctaOptions.length]
-    result = cta + "\n" + result
+    result = result + "\n" + cta
     console.log(`CTA追加: ${cta}`)
   }
 
