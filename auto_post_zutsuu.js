@@ -290,7 +290,7 @@ REPLY:
   // 1日8投稿の通し番号でCTAを制御（3投稿に1回）
   const jstHourM = (new Date().getUTCHours() + 9) % 24
   const execOrderM = jstHourM < 10 ? 0 : jstHourM < 16 ? 1 : jstHourM < 21 ? 2 : 3
-  const globalIndexM = execOrderM * 2 + topicIndex
+  const globalIndexM = execOrderM * 3 + topicIndex
   if (globalIndexM % 3 === 2 && reply) {
     const cta = ctaOptions[globalIndexM % ctaOptions.length]
     reply = reply + "\n\n" + cta
@@ -602,7 +602,7 @@ ${avoidSection}
   // 1日8投稿の通し番号でCTAを制御（3投稿に1回）
   const jstHourC = (new Date().getUTCHours() + 9) % 24
   const execOrderC = jstHourC < 10 ? 0 : jstHourC < 16 ? 1 : jstHourC < 21 ? 2 : 3
-  const globalIndexC = execOrderC * 2 + topicIndex
+  const globalIndexC = execOrderC * 3 + topicIndex
   if (globalIndexC % 3 === 2) {
     const cta = ctaOptions[globalIndexC % ctaOptions.length]
     result = result + "\n" + cta
@@ -633,7 +633,7 @@ async function getContent(topicIndex = 0, alreadyGenerated = []) {
 }
 
 async function main() {
-  const totalPosts = 2
+  const totalPosts = 3
   const jstHour = (new Date().getUTCHours() + 9) % 24
   const isMorning = jstHour >= 4 && jstHour < 10
   const alreadyGenerated = []
