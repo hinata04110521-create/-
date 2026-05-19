@@ -506,7 +506,8 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 ② 問い合わせ増加：専門家としての信頼感を自然に滲ませ、プロフィールへ誘導する
 
 【構成ルール】
-- 基本は100文字を目安にすること。内容によって100文字を超えてもよいが、必ず文章がキリよく終わる場所で止めること（文の途中で終わらない）
+- 文字数は100〜150文字を目安にすること。絶対に200文字を超えないこと
+- 必ず「。」「！」「？」のいずれかで文章を終わらせること（文の途中・読点で終わらない）
 - 1行目：スクロールを止めるフック。以下のどれかを使う
   ・共感型「〜なのに治らないって、つらいですよね」
   ・あるある型「湿布を貼り続けて10年…それ、根本が違います」
@@ -625,17 +626,26 @@ ${avoidSection}
     .replace(/\n{3,}/g, "\n\n")
     .trim()
 
-  // 500文字超えたらキリのいいところで強制カット（Threads上限対策）
-  if (result.length > 500) {
-    const within500 = result.slice(0, 500)
-    const punctMatch = within500.match(/^([\s\S]*[。！？…])/)
-    if (punctMatch && punctMatch[1].length > 20) {
-      result = punctMatch[1].trim()
+  // 200文字超えたらキリのいいところで強制カット
+  const MAX_CHARS = 200
+  if (result.length > MAX_CHARS) {
+    const withinLimit = result.slice(0, MAX_CHARS)
+    // 句点・感嘆符・疑問符の最後の位置を探す
+    const lastPunct = Math.max(
+      withinLimit.lastIndexOf("。"),
+      withinLimit.lastIndexOf("！"),
+      withinLimit.lastIndexOf("？"),
+      withinLimit.lastIndexOf("…"),
+    )
+    if (lastPunct > 20) {
+      // 句点の直後で終わらせる
+      result = result.slice(0, lastPunct + 1).trim()
     } else {
-      const lastNewline = within500.lastIndexOf("\n")
-      result = lastNewline > 20 ? result.slice(0, lastNewline).trim() : within500.trim()
+      // 句点が見つからない場合は最後の改行で終わらせる
+      const lastNewline = withinLimit.lastIndexOf("\n")
+      result = lastNewline > 20 ? result.slice(0, lastNewline).trim() : withinLimit.trim()
     }
-    console.log(`文字数カット（上限超過）→ ${result.length}文字`)
+    console.log(`文字数カット → ${result.length}文字`)
   }
 
   // 1日8投稿の通し番号でCTAを制御（3投稿に1回）
