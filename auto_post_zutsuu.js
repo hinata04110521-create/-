@@ -287,8 +287,12 @@ REPLY:
   const main = mainMatch ? mainMatch[1].trim() : text
   let reply = replyMatch ? replyMatch[1].trim() : null
 
-  if (topicIndex % 3 === 2 && reply) {
-    const cta = ctaOptions[topicIndex % ctaOptions.length]
+  // 1日8投稿の通し番号でCTAを制御（3投稿に1回）
+  const jstHourM = (new Date().getUTCHours() + 9) % 24
+  const execOrderM = jstHourM < 10 ? 0 : jstHourM < 16 ? 1 : jstHourM < 21 ? 2 : 3
+  const globalIndexM = execOrderM * 2 + topicIndex
+  if (globalIndexM % 3 === 2 && reply) {
+    const cta = ctaOptions[globalIndexM % ctaOptions.length]
     reply = reply + "\n\n" + cta
     console.log(`朝CTA追加: ${cta}`)
   }
@@ -595,9 +599,12 @@ ${avoidSection}
     console.log(`文字数カット（上限超過）→ ${result.length}文字`)
   }
 
-  // 3投稿に1回、CTAを末尾に追加
-  if (topicIndex % 3 === 2) {
-    const cta = ctaOptions[topicIndex % ctaOptions.length]
+  // 1日8投稿の通し番号でCTAを制御（3投稿に1回）
+  const jstHourC = (new Date().getUTCHours() + 9) % 24
+  const execOrderC = jstHourC < 10 ? 0 : jstHourC < 16 ? 1 : jstHourC < 21 ? 2 : 3
+  const globalIndexC = execOrderC * 2 + topicIndex
+  if (globalIndexC % 3 === 2) {
+    const cta = ctaOptions[globalIndexC % ctaOptions.length]
     result = result + "\n" + cta
     console.log(`CTA追加: ${cta}`)
   }
