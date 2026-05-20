@@ -2,6 +2,24 @@ const https = require("https")
 const fs = require("fs")
 const path = require("path")
 
+// Anthropic API リトライ付き呼び出し（529 Overloaded に対応）
+async function callAnthropicWithRetry(client, params, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await client.messages.create(params)
+    } catch (err) {
+      const isOverloaded = err.status === 529 || (err.message && err.message.includes("overloaded"))
+      if (isOverloaded && attempt < maxRetries) {
+        const waitSec = attempt * 15 // 15秒 → 30秒 → (最大3回)
+        console.log(`Anthropic過負荷のためリトライ (${attempt}/${maxRetries - 1}) … ${waitSec}秒待機`)
+        await new Promise(r => setTimeout(r, waitSec * 1000))
+      } else {
+        throw err
+      }
+    }
+  }
+}
+
 // Threads API に POST
 function threadsFetch(url, params) {
   return new Promise((resolve, reject) => {
@@ -279,7 +297,7 @@ MAIN:
 REPLY:
 （返信投稿の内容）`
 
-  const message = await client.messages.create({
+  const message = await callAnthropicWithRetry(client, {
     model: "claude-haiku-4-5-20251001",
     max_tokens: 800,
     messages: [{ role: "user", content: prompt }],
@@ -596,7 +614,7 @@ ${avoidSection}
 - 投稿本文だけをそのまま出力する（説明文・前置き・ラベル・見出し一切不要）`,
   }
 
-  const message = await client.messages.create({
+  const message = await callAnthropicWithRetry(client, {
     model: "claude-haiku-4-5-20251001",
     max_tokens: 512,
     messages: [{ role: "user", content: prompts[timeSlot] }],
