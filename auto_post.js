@@ -2,6 +2,18 @@ const https = require("https")
 const fs = require("fs")
 const path = require("path")
 
+// ========== キャンペーン設定 ==========
+const CAMPAIGN = {
+  endDate: new Date("2026-07-01T00:00:00+09:00"), // 6月末まで（JST）
+  spots: 3,       // 先着人数
+  price: 4980,    // 初回料金（円）
+  lineKeyword: "-3kg", // LINEメッセージキーワード
+}
+function isCampaignActive() {
+  return new Date() < CAMPAIGN.endDate
+}
+// ======================================
+
 // Anthropic API リトライ付き呼び出し（529 Overloaded に対応）
 async function callAnthropicWithRetry(client, params, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -733,6 +745,52 @@ ${avoidSection}
   return result
 }
 
+// キャンペーン告知投稿を生成
+async function generatePromotionPost(alreadyGenerated = []) {
+  if (!isCampaignActive()) return null
+
+  const Anthropic = require("@anthropic-ai/sdk")
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+  const avoidSection = alreadyGenerated.length > 0
+    ? `【以下と似た書き出しは避けること（重複防止）】\n${alreadyGenerated.slice(-3).map((t, i) => `${i + 1}. ${t.slice(0, 30)}`).join("\n")}\n`
+    : ""
+
+  const prompt = `あなたは40・50代女性専門のダイエットサポーターです。
+
+以下のスタイルを参考に、キャンペーン告知投稿を1つ作成してください。
+
+【参考スタイル】
+夏服出してきつかった方へ
+
+夏は暑くて外出が減り、運動不足になりがちです。さらに湿気でむくみが取れず、気づいたらプラス3キロなんてことはザラにあります。
+
+このまま7月を迎えたら、夏服を買い替えることに……。でも大丈夫です。今から始めれば、2ヶ月で間に合います。
+
+6月末まで初回${CAMPAIGN.price.toLocaleString()}円、先着${CAMPAIGN.spots}名限定です。公式LINEに「${CAMPAIGN.lineKeyword}」とメッセージをください。
+
+【必ず守るルール】
+- ターゲット：40・50代女性
+- 1行目：「〇〇な方へ」「〇〇で悩んでいる方へ」など共感フックで始める（毎回違うシーン・悩みを使う）
+- 具体的な悩み・状況を2〜3文で共感を込めて描写する
+- 「このままだと〇〇になる、でも今からなら間に合う」という流れを作る
+- 最後にキャンペーン情報を自然に入れる：「6月末まで初回${CAMPAIGN.price.toLocaleString()}円、先着${CAMPAIGN.spots}名限定です。公式LINEに「${CAMPAIGN.lineKeyword}」とメッセージをください。」
+- ハッシュタグなし・絵文字なし
+- 400文字以内
+- 投稿本文だけをそのまま出力（説明文・ラベル・前置き不要）
+${avoidSection}`
+
+  const message = await callAnthropicWithRetry(client, {
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 600,
+    messages: [{ role: "user", content: prompt }],
+  })
+
+  const result = message.content[0].text.trim()
+  console.log(`キャンペーン投稿生成: ${result.length}文字`)
+  return result
+}
+
 // 閲覧数が多い投稿を取得（昼・夕方用）
 async function getBestPost(timeSlot) {
   const TOKEN   = process.env.THREADS_ACCESS_TOKEN
@@ -822,7 +880,17 @@ async function main() {
 
     let mainText, replyText = null
 
-    if (isMorning) {
+    // 最終投稿スロット（夜以外）はキャンペーン投稿に差し替え
+    const isEveningRun = jstHour >= 21 || jstHour < 4
+    const isPromotionSlot = i === totalPosts && !isEveningRun && isCampaignActive()
+
+    if (isPromotionSlot) {
+      console.log("タイプ: キャンペーン告知投稿")
+      mainText = await generatePromotionPost(alreadyGenerated)
+      if (!mainText) {
+        mainText = await getContent(i - 1, alreadyGenerated)
+      }
+    } else if (isMorning) {
       const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
       const fixedPosts = posts.morning || []
       // 最初のN件は固定投稿を順番に使い、残りはAI生成
