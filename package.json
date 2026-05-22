@@ -10,10 +10,10 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
     "next": "^16.2.4",
+    "nodemailer": "^6.9.0",
     "puppeteer": "^22.0.0",
     "react": "^18",
-    "react-dom": "^18",
-    "resend": "^3.0.0"
+    "react-dom": "^18"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -220,15 +220,22 @@ ${mdToHtml(reportContent)}
   return pdf
 }
 
-// ===== メール送信 =====
+// ===== メール送信（Gmail / Nodemailer） =====
 async function sendEmail(pdfBuffer, reportDate) {
-  const { Resend } = require("resend")
-  const resend = new Resend(process.env.RESEND_API_KEY)
+  const nodemailer = require("nodemailer")
 
   const filename = `threads_report_${reportDate.replace(/\//g, "")}.pdf`
 
-  await resend.emails.send({
-    from: "Threads Report <onboarding@resend.dev>",
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  })
+
+  await transporter.sendMail({
+    from: `Threads Report <${process.env.GMAIL_USER}>`,
     to: process.env.REPORT_EMAIL,
     subject: `📊 Threads 週次レポート - ${reportDate}`,
     html: `<p>お疲れ様です。</p>
@@ -239,7 +246,7 @@ async function sendEmail(pdfBuffer, reportDate) {
     attachments: [
       {
         filename,
-        content: Buffer.from(pdfBuffer).toString("base64"),
+        content: pdfBuffer,
       },
     ],
   })
