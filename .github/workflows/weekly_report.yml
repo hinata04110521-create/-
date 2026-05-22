@@ -1,0 +1,35 @@
+name: 週次Threadsレポート送信
+
+on:
+  schedule:
+    - cron: '0 22 * * 0'  # 毎週月曜日 7:00 JST (日曜22:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 日本語フォントをインストール
+        run: sudo apt-get install -y fonts-noto-cjk
+
+      - name: 依存パッケージをインストール
+        run: npm install
+
+      - name: 週次レポートを生成してメール送信
+        run: node weekly_report.js
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_ACCESS_TOKEN_ZUTSUU: ${{ secrets.THREADS_ACCESS_TOKEN_ZUTSUU }}
+          THREADS_USER_ID_ZUTSUU: ${{ secrets.THREADS_USER_ID_ZUTSUU }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          REPORT_EMAIL: ht04110521@yahoo.co.jp
