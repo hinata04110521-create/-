@@ -781,6 +781,7 @@ async function generatePromotionPost(alreadyGenerated = []) {
 - ハッシュタグなし・絵文字なし
 - 400文字以内
 - 投稿本文だけをそのまま出力（説明文・ラベル・前置き不要）
+- 「秋服」「冬服」「春服」など夏以外の季節の服に関する表現は絶対に使わない
 ${avoidSection}`
 
   const message = await callAnthropicWithRetry(client, {
@@ -789,7 +790,16 @@ ${avoidSection}`
     messages: [{ role: "user", content: prompt }],
   })
 
-  const result = message.content[0].text.trim()
+  let result = message.content[0].text.trim()
+
+  // 禁止ワードが含まれていたらnullを返してフォールバックさせる
+  const forbiddenPhrases = ["秋服", "冬服", "春服"]
+  const hasForbidden = forbiddenPhrases.some(p => result.includes(p))
+  if (hasForbidden) {
+    console.log("キャンペーン投稿に禁止ワードが含まれていたためスキップ")
+    return null
+  }
+
   console.log(`キャンペーン投稿生成: ${result.length}文字`)
   return result
 }
