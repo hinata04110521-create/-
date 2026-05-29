@@ -518,178 +518,126 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
     "3ヶ月で姿勢を変えたい方は、プロフィールのLINEから相談できます。",
   ]
 
-  const commonConditions = `
-【投稿の2つの目的を同時に達成すること】
-① フォロワー獲得：「わかる」「これ私だ」と思わせる共感で保存・シェアされる投稿
-② 問い合わせ増加：専門家としての信頼感を自然に滲ませ、プロフィールへ誘導する
+  const followOptions = [
+    "他にも頭痛・肩こりの情報を毎日発信しています。参考になったらフォローしてお待ちください！",
+    "頭痛・姿勢に関する情報を毎日発信中。フォローしておくと役立つ情報が届きます。",
+    "他にも薬に頼らない頭痛改善の情報を発信しています。ぜひフォローしてください！",
+  ]
 
-【構成ルール】
-- 文字数は100〜150文字を目安にすること。絶対に200文字を超えないこと
-- 必ず「。」「！」「？」のいずれかで文章を終わらせること（文の途中・読点で終わらない）
-- 1行目：スクロールを止めるフック。以下のどれかを使う
-  ・共感型「〜なのに治らないって、つらいですよね」
-  ・あるある型「湿布を貼り続けて10年…それ、根本が違います」
-  ・比較型「頭痛が出る人・出ない人、違いは〇〇だった」
-  ・意外性型「肩こりの原因は肩じゃない」
-  ・疑問型「毎朝頭が重いのは、年齢のせいじゃないかもしれない」
-  ・食事型「朝食を抜いた日だけ頭痛が出る、それ偶然じゃないです」
-- 2行目：根本原因を一言で（姿勢・鉄分不足・貧血・血流・自律神経・食事など具体的に）
-- 3行目：今日すぐできる行動か、希望を感じさせる一言
+  const commonPromptBase = `あなたは頭痛・肩こり・猫背改善の専門家（整骨院の先生）です。
+${audience}
+${styleGuide}
+今回のテーマ：「${currentTopic}」
+${searchSection}
+${avoidSection}
+【食事と頭痛の関係（テーマに合う場合は自然に盛り込む）】
+- 朝食抜き・空腹 → 血糖値低下 → 頭痛
+- カフェイン飲みすぎ・急にやめる → 頭痛
+- マグネシウム不足・鉄分不足・水分不足 → 頭痛悪化
+- 血糖値の急上昇急降下 → 昼食後の頭痛
+
+【出力形式（必ずこの形式で出力すること）】
+MAIN:
+（メイン投稿：スクロールを止めるフック1〜2行、60文字以内）
+
+REPLY:
+（返信投稿：具体的な手順・数字・仕組み説明を含む詳細内容、300文字以内）
+
+【MAINのフック型（どれか1つを使う）】
+・ナイショ型「ナイショにしてください。〇〇、教えます。」
+・秘密型「知らないと損する〇〇の話。」
+・共感型「〜なのに治らない方へ。」
+・比較型「頭痛が出る人・出ない人、違いは〇〇でした。」
+・意外性型「肩こりの原因、肩じゃないです。」
+・疑問型「毎朝頭が重いの、年齢のせいじゃないかも。」
+
+【REPLYのルール】
+- 具体的な数字・秒数・センチなどを使う（例：「耳を3センチ引っ張って5秒キープ」）
+- 手順がある場合は番号で書く（例：①→②→③）
+- 「なぜかというと、〜」で仕組みを1文説明する
 - 40代・50代女性の「あるある」なシーン・言葉を積極的に使う
-  例：「更年期だと思ってたら」「市販薬を飲み続けて」「整体に行っても翌日戻る」「家事の合間に」
+- 「また明日も頑張ろう」などの締めくくりフレーズは絶対に使わない
+- ハッシュタグなし・絵文字なし・見出し記号なし
+- MAIN:とREPLY:のラベル以外の説明文・前置き・ラベルは一切不要`
 
-【食事と頭痛の関係（積極的に投稿へ盛り込む）】
-テーマによって姿勢・食事・鉄分など角度を変えること。以下の知識を自然に活用してください：
-- 朝食抜き・空腹 → 血糖値低下 → 頭痛（40代女性に多いパターン）
-- カフェイン（コーヒー・緑茶）→ 飲みすぎると頭痛、急にやめても離脱頭痛
-- マグネシウム不足 → 血管が収縮しやすくなり片頭痛を誘発
-- 鉄分・貧血 → 脳への酸素不足 → 頭痛・めまい・肩こり悪化
-- チョコレート・チーズ・赤ワイン → チラミン含有で片頭痛トリガー
-- 血糖値の急上昇・急降下 → 昼食後の頭痛によくある原因
-- 水分不足 → 血流悪化 → 頭痛（特に午後・夜）
-- ビタミンB2・マグネシウムを食事で摂ると片頭痛予防になる
-
-- 「また明日も頑張ろう」「また明日」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない`
-
-  const prompts = {
-    morning: `あなたは頭痛・肩こり・猫背改善の専門家（整骨院の先生）です。
-${audience}
-このターゲットに向けた朝の投稿を作成してください。
-${styleGuide}
-今回のテーマ：「${currentTopic}」
-${searchSection}
-${avoidSection}
-追加条件：${commonConditions}
-【朝投稿の特別ルール】
-- 「朝起きたら頭が重い」「また今日も…と思いながら起きた方へ」など、朝のリアルな共感で始める
-- 40代・50代女性が「これ、まさに私の話だ」と感じる具体的な言葉を使う
-【絶対にやってはいけないこと】
-- 「朝6時の投稿」「朝6時」「朝の投稿」などの時間帯ラベルを本文に入れない
-- 「別案」「案1」「案2」「パターン」などの選択肢ラベルを入れない
-- テーマ名・題材名を【　】や見出しとして本文の冒頭や途中に入れない
-- 投稿本文だけをそのまま出力する（説明文・前置き・ラベル・見出し一切不要）`,
-
-    lunch: `あなたは頭痛・肩こり・猫背改善の専門家（整骨院の先生）です。
-${audience}
-このターゲットに向けた昼の投稿を作成してください。
-${styleGuide}
-今回のテーマ：「${currentTopic}」
-${searchSection}
-${avoidSection}
-追加条件：${commonConditions}
-【昼投稿の特別ルール】
-- 最初の1行でスクロールを止めること（これが最重要）
-- 40代・50代女性の昼のリアルな場面を使う（デスクワーク・昼休み・家事の合間など）
-- 使える型：①「頭痛が出る人・出ない人、違いは〇〇だった」②「〇〇し続けてきた方へ」③「これ知らずにいると損です」
-- 共感ファースト→原因→行動の流れで書く
-【絶対にやってはいけないこと】
-- 「昼12時の投稿」「昼12時」などの時間帯ラベルを本文に入れない
-- 「別案」「案1」「案2」などのラベルを入れない
-- テーマ名・題材名を【　】や見出しとして本文の冒頭や途中に入れない
-- 投稿本文だけをそのまま出力する（説明文・前置き・ラベル・見出し一切不要）`,
-
-    afternoon: `あなたは頭痛・肩こり・猫背改善の専門家（整骨院の先生）です。
-${audience}
-このターゲットに向けた夕方の投稿を作成してください。
-${styleGuide}
-今回のテーマ：「${currentTopic}」
-${searchSection}
-${avoidSection}
-追加条件：${commonConditions}
-【夕方投稿の特別ルール】
-- 最初の1行でスクロールを止めること（これが最重要）
-- 仕事終わり・帰宅・夕食準備など40代・50代女性の夕方のリアルな場面を使う
-- 使える型：①「夕方になると頭痛が出る…それ、〇〇のせいです」②「〇〇してきた方、それが原因かもしれません」③「夕方の肩こりの正体は〇〇だった」
-- 「つらかったですよね」「ずっと我慢してきた方へ」など共感の言葉を入れる
-【絶対にやってはいけないこと】
-- 「夕方17時の投稿」「夕方5時」「夕方17時」などの時間帯ラベルを本文に絶対に入れない
-- 「別案」「案1」「案2」などのラベルを入れない
-- テーマ名・題材名を【　】や見出しとして本文の冒頭や途中に入れない
-- 投稿本文だけをそのまま出力する（説明文・前置き・ラベル・見出し一切不要）`,
-
-    evening: `あなたは頭痛・肩こり・猫背改善の専門家（整骨院の先生）です。
-${audience}
-このターゲットに向けた夜の投稿を作成してください。
-${styleGuide}
-今回のテーマ：「${currentTopic}」
-${searchSection}
-${avoidSection}
-追加条件：${commonConditions}
-【夜投稿の特別ルール】
-- 最初の1行でスクロールを止めること（これが最重要）
-- 使える型：①「今夜〇〇するだけで明日の頭痛が変わる」②「ずっと〇〇で悩んできた方へ」③「寝る前に〇〇してる人は治らない」
-- 「今日も頭痛で一日つらかった方」「ずっとこの痛みと付き合ってきた方」など共感の言葉で始めると効果的
-- 夜は特に「希望」「変われる」という前向きなメッセージで締める（フレーズは避けつつ）
-【絶対にやってはいけないこと】
-- 「夜21時の投稿」「夜21時」などの時間帯ラベルを本文に絶対に入れない
-- 「別案」「案1」「案2」などのラベルを入れない
-- テーマ名・題材名を【　】や見出しとして本文の冒頭や途中に入れない
-- 投稿本文だけをそのまま出力する（説明文・前置き・ラベル・見出し一切不要）`,
+  const timeSlotHint = {
+    morning: "朝起きたときの頭痛・首こわばりのリアルな場面を使う。「また今日も…」という朝の共感で始めると効果的。",
+    lunch: "デスクワーク・昼休み・家事の合間など昼のリアルな場面を使う。",
+    afternoon: "仕事終わり・帰宅・夕食準備など夕方の場面を使う。「ずっと我慢してきた方へ」など共感の言葉を入れる。",
+    evening: "「今日も頭痛でつらかった方へ」など夜の共感で始める。希望・変われるという前向きな締めにする。",
   }
+
+  const fullPrompt = `${commonPromptBase}
+【この時間帯のヒント】${timeSlotHint[timeSlot]}`
 
   const message = await callAnthropicWithRetry(client, {
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 512,
-    messages: [{ role: "user", content: prompts[timeSlot] }],
+    max_tokens: 700,
+    messages: [{ role: "user", content: fullPrompt }],
   })
 
-  let result = message.content[0].text.trim()
+  const text = message.content[0].text.trim()
 
-  // AIが誤って入れた時間帯ラベル・別案ラベル・区切り線・題材タイトルを除去
-  result = result
-    // 時間帯ラベル（見出し形式）
-    .replace(/^#+\s*(夜|朝|昼|夕方)[^\n]*/mg, "")
-    // 時間帯ラベル（行頭の直接記述）
-    .replace(/^(夜\d*時|朝\d*時|昼\d*時|夕方\d*時)[^\n]*/mg, "")
-    .replace(/^(夜の投稿|朝の投稿|昼の投稿|夕方の投稿|夕方の)[：:・]?[^\n]*/mg, "")
-    // 数字付き時間表現（「夕方5時」「朝6時」など）
-    .replace(/^.*?(?:夕方|朝|昼|夜)\s*\d+\s*時.*$/mg, "")
-    // 別案・案ラベル
-    .replace(/^(別案[：:・]?|案\d+[：:・]?|パターン\d+[：:・]?)[^\n]*/mg, "")
-    // 題材・テーマ見出し（【〜】形式や「テーマ：」「題材：」「今回のテーマ：」など）
-    .replace(/^【[^】]*】\s*\n?/mg, "")
-    .replace(/^(テーマ|題材|今回のテーマ|投稿テーマ)[：:][^\n]*/mg, "")
-    // 記号付き見出し行（▼▶◆■●など）
-    .replace(/^[▼▶►◆◇■□●○★☆＊※]\s*[^\n]+$/mg, "")
-    // 区切り線（---・ーーー・===など）
-    .replace(/^[-ーー─━=＝\*＊]{2,}$/mg, "")
-    // 3行以上の空行を2行に圧縮
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
+  const mainMatch = text.match(/MAIN:\n([\s\S]*?)(?=\nREPLY:)/)
+  const replyMatch = text.match(/REPLY:\n([\s\S]*)/)
 
-  // 200文字超えたらキリのいいところで強制カット
-  const MAX_CHARS = 200
-  if (result.length > MAX_CHARS) {
-    const withinLimit = result.slice(0, MAX_CHARS)
-    // 句点・感嘆符・疑問符の最後の位置を探す
-    const lastPunct = Math.max(
-      withinLimit.lastIndexOf("。"),
-      withinLimit.lastIndexOf("！"),
-      withinLimit.lastIndexOf("？"),
-      withinLimit.lastIndexOf("…"),
-    )
-    if (lastPunct > 20) {
-      // 句点の直後で終わらせる
-      result = result.slice(0, lastPunct + 1).trim()
-    } else {
-      // 句点が見つからない場合は最後の改行で終わらせる
-      const lastNewline = withinLimit.lastIndexOf("\n")
-      result = lastNewline > 20 ? result.slice(0, lastNewline).trim() : withinLimit.trim()
-    }
-    console.log(`文字数カット → ${result.length}文字`)
+  let main = mainMatch ? mainMatch[1].trim() : text
+  let reply = replyMatch ? replyMatch[1].trim() : null
+
+  // 不要ラベル・区切り線を除去する共通フィルター
+  function cleanText(t) {
+    return t
+      .replace(/^#+\s*(夜|朝|昼|夕方)[^\n]*/mg, "")
+      .replace(/^(夜\d*時|朝\d*時|昼\d*時|夕方\d*時)[^\n]*/mg, "")
+      .replace(/^(別案[：:・]?|案\d+[：:・]?|パターン\d+[：:・]?)[^\n]*/mg, "")
+      .replace(/^【[^】]*】\s*\n?/mg, "")
+      .replace(/^(テーマ|題材|今回のテーマ)[：:][^\n]*/mg, "")
+      .replace(/^[-ーー─━=＝\*＊]{2,}$/mg, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
   }
 
-  // 1日8投稿の通し番号でCTAを制御（3投稿に1回）
+  main = cleanText(main)
+  if (reply) reply = cleanText(reply)
+
+  // メイン投稿：200文字でキリよくカット
+  if (main.length > 200) {
+    const within = main.slice(0, 200)
+    const lastPunct = Math.max(within.lastIndexOf("。"), within.lastIndexOf("！"), within.lastIndexOf("？"))
+    main = lastPunct > 20 ? main.slice(0, lastPunct + 1).trim() : within.trim()
+    console.log(`メイン文字数カット → ${main.length}文字`)
+  }
+
+  // 返信投稿：500文字でキリよくカット
+  if (reply && reply.length > 500) {
+    const within = reply.slice(0, 500)
+    const lastPunct = Math.max(within.lastIndexOf("。"), within.lastIndexOf("！"), within.lastIndexOf("？"))
+    reply = lastPunct > 20 ? reply.slice(0, lastPunct + 1).trim() : within.trim()
+    console.log(`返信文字数カット → ${reply.length}文字`)
+  }
+
+  // 1日の通し番号でCTA制御（3投稿に1回、返信に追加）
   const jstHourC = (new Date().getUTCHours() + 9) % 24
   const execOrderC = jstHourC < 10 ? 0 : jstHourC < 16 ? 1 : jstHourC < 21 ? 2 : 3
   const globalIndexC = execOrderC * 3 + topicIndex
   if (globalIndexC % 3 === 2) {
     const cta = ctaOptions[globalIndexC % ctaOptions.length]
-    result = result + "\n" + cta
+    if (reply) {
+      reply = reply + "\n\n" + cta
+    } else {
+      main = main + "\n" + cta
+    }
     console.log(`CTA追加: ${cta}`)
   }
 
-  return result
+  // フォロー訴求：2投稿に1回、返信の末尾に追加
+  if (reply && globalIndexC % 2 === 0) {
+    const follow = followOptions[globalIndexC % followOptions.length]
+    reply = reply + "\n\n" + follow
+    console.log(`フォロー訴求追加: ${follow}`)
+  }
+
+  return { main, reply }
 }
 
 // 現在の JST 時間に応じてコンテンツを決定
@@ -738,7 +686,9 @@ async function main() {
         replyText = generated.reply
       }
     } else {
-      mainText = await getContent(i - 1, alreadyGenerated)
+      const generated = await getContent(i - 1, alreadyGenerated)
+      mainText = generated.main
+      replyText = generated.reply
     }
 
     console.log("\n--- メイン投稿 ---")
