@@ -557,6 +557,7 @@ ${examples}
   // Tavilyでネット検索（全時間帯で健康・血糖値キーワードを含める）
   console.log(`「${currentTopic}」を検索中...`)
   const searchQuery = `${currentTopic} ダイエット 血糖値 糖尿病 高血圧 コレステロール 健康 40代 50代 女性 最新`
+
   const searchResult = await searchWeb(searchQuery)
   const searchSection = searchResult ? `
 【最新のネット情報（参考にしてください）】
@@ -599,153 +600,128 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 - 刃を研ぐ：食事だけでなく睡眠・ストレス・体全体をバランスよく整えることが継続のカギ
 ※本のタイトルや著者名には絶対に触れないこと。考え方だけを投稿に自然に溶け込ませること。`
 
-  const commonConditions = `
-- 全体を3行以内・100文字以内（改行含む）を目標にすること。できる限り100文字に収めるよう努めること
-- 1行目だけで読者のスクロールを止めること（比較型・意外性型・疑問型のどれかを必ず使う）
-- 2行目：根本原因を一言で（短く断言する）
-- 3行目：今日すぐできる行動を一言で
-- ダイエットを軸にしながら、血糖値・糖尿病・高血圧・コレステロールなど健康全般の情報も自然に織り交ぜる
-- 「また明日も頑張ろう」「また明日」「明日も頑張ろう」「一緒に頑張ろう」などの締めくくりフレーズは絶対に使わない${ctaLine}
-【今の季節に合ったテーマ（他のテーマと重複しない場合に自然に使う）】
-- 春夏ファッション×ダイエット：「夏服を買い替える前に体から変える」「体型カバーより代謝を上げる」など、ファッションとダイエットを結びつけた切り口
-- 例：「夏服を買い替える前に見てほしい。体型カバーに頼り続けると、代謝は落ちる一方。今月1つだけ『食べ方』を変えてみて。」
-${sevenHabitsHint}`
+  const followOptions = [
+    "他にもダイエット・健康に関する情報を毎日発信しています。参考になったらフォローしてお待ちください！",
+    "40・50代女性の食事・血糖値・体重管理の情報を毎日発信中。ぜひフォローしてください！",
+    "他にも痩せる食べ方・血糖値改善の情報を発信しています。フォローしておくと役立つ情報が届きます。",
+  ]
 
-  const prompts = {
-    morning: `あなたは40・50代女性専門のダイエットサポーターです。
-${audience}
-このターゲットに向けた「朝6時の投稿」を作成してください。
-${styleGuide}
-今回のテーマ：「${morningTopic}」
-${searchSection}
-${avoidSection}
-追加条件：${commonConditions}
-【絶対にやってはいけないこと】
-- 「朝6時の投稿」「朝の投稿」などの時間帯ラベルを本文に入れない
-- 「別案」「案1」「案2」「パターン」などの選択肢ラベルを入れない
-- 投稿本文だけをそのまま出力する（説明文・前置き・ラベル一切不要）`,
-
-    afternoon: `あなたは40・50代女性専門のダイエットサポーターです。
-${audience}
-このターゲットに向けた「夕方17時の投稿」を作成してください。
-${styleGuide}
-今回のテーマ：「${afternoonTopic}」
-${searchSection}
-${avoidSection}
-追加条件：${commonConditions}
-【夕方投稿の特別ルール】
-- 最初の1行でスクロールを止めること（これが最重要）
-- 使える型：①「夕方の〇〇が翌日の体重を決める」②「〇〇してるなら今すぐやめて」③「夕方の食欲の正体は〇〇だった」
-- 仕事帰り・買い物・夕食準備など夕方の具体的なシーンに落とし込む
-【絶対にやってはいけないこと】
-- 「夕方17時の投稿」「夕方の投稿」などの時間帯ラベルを本文に入れない
-- 「別案」「案1」「案2」「パターン」などの選択肢ラベルを入れない
-- 投稿本文だけをそのまま出力する（説明文・前置き・ラベル一切不要）`,
-
-    lunch: `あなたは40・50代女性専門のダイエットサポーターです。
-${audience}
-このターゲットに向けた「昼12時の投稿」を作成してください。
-${styleGuide}
-今回のテーマ：「${lunchTopic}」
-${searchSection}
-${avoidSection}
-追加条件：${commonConditions}
-【昼投稿の特別ルール】
-- 最初の1行でスクロールを止めること（これが最重要）
-- 使える型：①「太る人は〇〇、痩せる人は〇〇」②「〇〇してるなら今すぐやめて」③「これ知らずに昼食べてると損です」
-- コンビニ・定食屋・外食・お弁当など具体的なシーンに落とし込む
-- 「今日のランチから使える」即効性のある内容にする
-【絶対にやってはいけないこと】
-- 「昼12時の投稿」「ランチの投稿」などの時間帯ラベルを本文に入れない
-- 「別案」「案1」「案2」「パターン」などの選択肢ラベルを入れない
-- 投稿本文だけをそのまま出力する（説明文・前置き・ラベル一切不要）`,
-
-    evening: `あなたは40・50代女性専門のダイエットサポーターです。
-${audience}
-このターゲットに向けた「夜21時の投稿」を作成してください。
-${styleGuide}
-今回のテーマ：「${eveningTopic}」
-${searchSection}
-${avoidSection}
-追加条件：${commonConditions}
-【夜投稿の特別ルール】
-- 最初の1行でスクロールを止めること（これが最重要）
-- 使える型：①「今夜〇〇するだけで明日の体が変わる」②「夜の〇〇をやめると血糖値が下がる」③「寝る前に〇〇してる人は痩せない」
-- 血糖値・糖尿病・高血圧・コレステロールなど健康全般の情報を積極的に取り上げる
-【絶対にやってはいけないこと】
-- 「夜21時の投稿」「#5時の投稿」「朝6時の投稿」など時間帯を示すラベルを本文に絶対に入れない（#付きも禁止）
-- 「別案」「案1」「案2」「パターン」などの選択肢ラベルを入れない
-- 投稿本文だけをそのまま出力する（説明文・前置き・ラベル・#見出し行 一切不要）`,
-  }
-
-  const message = await callAnthropicWithRetry(client, {
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 512,
-    messages: [{ role: "user", content: prompts[timeSlot] }],
-  })
-
-  let result = message.content[0].text.trim()
-
-  // AIが誤って入れた時間帯ラベル・別案ラベルを除去（#付きも対応）
-  result = result
-    .replace(/^#+\s*(夜21時|夜9時|夜の|21時)[^\n]*/m, "")
-    .replace(/^#+\s*(朝6時|朝の|6時)[^\n]*/m, "")
-    .replace(/^#+\s*(昼12時|昼の|12時|ランチ)[^\n]*/m, "")
-    .replace(/^#+\s*(夕方17時|夕方5時|夕方の|17時|5時)[^\n]*/m, "")
-    .replace(/^#+\s*(別案|案\d+|パターン)[^\n]*/m, "")
-    .replace(/^(夜21時の投稿[：:・]?|夜9時の投稿[：:・]?|夜の投稿[：:・]?)/m, "")
-    .replace(/^(朝6時の投稿[：:・]?|朝の投稿[：:・]?)/m, "")
-    .replace(/^(昼12時の投稿[：:・]?|ランチの投稿[：:・]?|昼の投稿[：:・]?)/m, "")
-    .replace(/^(夕方17時の投稿[：:・]?|夕方5時の投稿[：:・]?|夕方の投稿[：:・]?)/m, "")
-    .replace(/^(別案[：:・]?|案\d+[：:・]?|パターン\d+[：:・]?)/m, "")
-    .trim()
-
-  // 120文字超えたら3行目までで強制カット（101〜120文字はそのまま通す）
-  if (result.length > 120) {
-    const lines = result.split("\n").filter(l => l.trim() !== "")
-    result = lines.slice(0, 3).join("\n").trim()
-    // それでも超える場合は文末記号で自然にカット
-    if (result.length > 120) {
-      const within120 = result.slice(0, 120)
-      // 120文字以内で最後の文末記号（。！？…）を探す
-      const punctMatch = within120.match(/^([\s\S]*[。！？…])/)
-      if (punctMatch && punctMatch[1].length > 20) {
-        result = punctMatch[1].trim()
-      } else {
-        // 文末記号がなければ最後の改行で切る
-        const lastNewline = within120.lastIndexOf("\n")
-        if (lastNewline > 20) {
-          result = result.slice(0, lastNewline).trim()
-        } else {
-          // それもなければ2行までに絞る
-          result = lines.slice(0, 2).join("\n").trim()
-        }
-      }
-    }
-    console.log(`文字数カット → ${result.length}文字`)
-  }
-
-  // 3投稿に1回、CTAを末尾に追加（カットされないようにコードで付与）
-  if (topicIndex % 3 === 2) {
-    const cta = ctaOptions[topicIndex % ctaOptions.length]
-    result = result + "\n" + cta
-    console.log(`CTA追加: ${cta}`)
-  }
-
-  // 3投稿に1回、冒頭に地域フレーズを追加（CTAと別タイミング）
   const locationOptions = [
     "川崎市宮前区エリアで体重が減らなくて悩んでいるあなたへ",
     "川崎市宮前区エリアで血糖値・血圧が気になって悩んでいるあなたへ",
     "川崎市宮前区エリアでダイエットに何度も失敗して悩んでいるあなたへ",
     "川崎市宮前区エリアで膝・腰の痛みと体重増加で悩んでいるあなたへ",
   ]
+
+  const timeSlotHint = {
+    morning: "朝起きたばかりの時間帯。「また今日も体重が…」など朝のリアルな共感で始める。",
+    lunch: "コンビニ・定食屋・外食など昼のリアルな場面を使う。「今日のランチから使える」即効性を意識する。",
+    afternoon: "仕事帰り・買い物・夕食準備など夕方の場面を使う。「夕方の食欲の正体は〇〇だった」など。",
+    evening: "「今日も頑張ったのに体重が…」など夜の共感で始める。血糖値・睡眠・翌日への希望で締める。",
+  }
+
+  const fullPrompt = `あなたは40・50代女性専門のダイエットサポーターです。
+${audience}
+${styleGuide}
+今回のテーマ：「${currentTopic}」
+${searchSection}
+${avoidSection}
+${sevenHabitsHint}
+
+【出力形式（必ずこの形式で出力すること）】
+MAIN:
+（メイン投稿：スクロールを止めるフック1〜2行、60文字以内）
+
+REPLY:
+（返信投稿：具体的な理由・手順・数字を含む詳細内容、300文字以内）
+
+【MAINのフック型（どれか1つをテーマに合わせて使う）】
+・ナイショ型「ナイショにしてください。〇〇、教えます。」
+・秘密型「知らないと損する〇〇の話。」
+・共感型「〜してるのに痩せない方へ。」
+・比較型「痩せる人・太る人、違いは〇〇でした。」
+・意外性型「食べる量より〇〇の方が体重に影響します。」
+・疑問型「なぜ食べる量を減らしても痩せないのか。」
+
+【REPLYのルール】
+- 具体的な数字・食材名・時間を使う（例：「食後20分以内に〇〇する」「たんぱく質を毎食20g摂る」）
+- 手順がある場合は番号で書く（①→②→③）
+- 「なぜかというと、〜」で仕組みを1文説明する
+- ダイエットを軸に血糖値・糖尿病・高血圧・コレステロールも自然に織り交ぜる
+- 「また明日も頑張ろう」などの締めくくりフレーズは絶対に使わない
+- ハッシュタグなし・絵文字なし・見出し記号なし
+- MAIN:とREPLY:のラベル以外の説明文・前置きは一切不要
+
+【今の季節のヒント（自然に使う）】
+- 夏服・体型・熱中症×ダイエットなど季節感のある切り口も活用する
+
+【この時間帯のヒント】${timeSlotHint[timeSlot]}`
+
+  const message = await callAnthropicWithRetry(client, {
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 700,
+    messages: [{ role: "user", content: fullPrompt }],
+  })
+
+  const rawText = message.content[0].text.trim()
+
+  const mainMatch = rawText.match(/MAIN:\n([\s\S]*?)(?=\nREPLY:)/)
+  const replyMatch = rawText.match(/REPLY:\n([\s\S]*)/)
+
+  let main = mainMatch ? mainMatch[1].trim() : rawText
+  let reply = replyMatch ? replyMatch[1].trim() : null
+
+  // 不要ラベル・区切り線を除去
+  function cleanText(t) {
+    return t
+      .replace(/^#+\s*(夜|朝|昼|夕方)[^\n]*/mg, "")
+      .replace(/^(別案[：:・]?|案\d+[：:・]?|パターン\d+[：:・]?)[^\n]*/mg, "")
+      .replace(/^【[^】]*】\s*\n?/mg, "")
+      .replace(/^[-ーー─━=＝\*＊]{2,}$/mg, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  }
+  main = cleanText(main)
+  if (reply) reply = cleanText(reply)
+
+  // メイン：200文字でキリよくカット
+  if (main.length > 200) {
+    const within = main.slice(0, 200)
+    const lastPunct = Math.max(within.lastIndexOf("。"), within.lastIndexOf("！"), within.lastIndexOf("？"))
+    main = lastPunct > 20 ? main.slice(0, lastPunct + 1).trim() : within.trim()
+    console.log(`メイン文字数カット → ${main.length}文字`)
+  }
+
+  // 返信：500文字でキリよくカット
+  if (reply && reply.length > 500) {
+    const within = reply.slice(0, 500)
+    const lastPunct = Math.max(within.lastIndexOf("。"), within.lastIndexOf("！"), within.lastIndexOf("？"))
+    reply = lastPunct > 20 ? reply.slice(0, lastPunct + 1).trim() : within.trim()
+    console.log(`返信文字数カット → ${reply.length}文字`)
+  }
+
+  // 3投稿に1回CTAを返信に追加
+  if (topicIndex % 3 === 2) {
+    const cta = ctaOptions[topicIndex % ctaOptions.length]
+    if (reply) { reply = reply + "\n\n" + cta } else { main = main + "\n" + cta }
+    console.log(`CTA追加: ${cta}`)
+  }
+
+  // 2投稿に1回フォロー訴求を返信に追加
+  if (reply && topicIndex % 2 === 0) {
+    const follow = followOptions[topicIndex % followOptions.length]
+    reply = reply + "\n\n" + follow
+    console.log(`フォロー訴求追加`)
+  }
+
+  // 3投稿に1回メインの冒頭に地域フレーズを追加
   if (topicIndex % 3 === 0) {
     const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
-    result = location + "\n" + result
+    main = location + "\n" + main
     console.log(`地域フレーズ追加: ${location}`)
   }
 
-  return result
+  return { main, reply }
 }
 
 // キャンペーン告知投稿を生成
@@ -901,7 +877,9 @@ async function main() {
       console.log("タイプ: キャンペーン告知投稿")
       mainText = await generatePromotionPost(alreadyGenerated)
       if (!mainText) {
-        mainText = await getContent(i - 1, alreadyGenerated)
+        const generated = await getContent(i - 1, alreadyGenerated)
+        mainText = generated.main
+        replyText = generated.reply
       }
     } else if (isMorning) {
       const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
@@ -919,7 +897,9 @@ async function main() {
         replyText = generated.reply
       }
     } else {
-      mainText = await getContent(i - 1, alreadyGenerated)
+      const generated = await getContent(i - 1, alreadyGenerated)
+      mainText = generated.main
+      replyText = generated.reply
     }
 
     console.log("\n--- メイン投稿 ---")
