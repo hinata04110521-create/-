@@ -321,6 +321,19 @@ REPLY:
     console.log(`朝CTA追加: ${cta}`)
   }
 
+  // 地域フレーズ：3投稿に1回、メインの冒頭に追加
+  const locationOptions = [
+    "川崎市宮前区エリアで頭痛・肩こりに悩んでいるあなたへ",
+    "川崎市宮前区エリアで慢性的な肩こりに長年悩んでいるあなたへ",
+    "川崎市宮前区エリアで猫背・姿勢の悪さが気になるあなたへ",
+    "川崎市宮前区エリアで頭痛薬に頼り続けているあなたへ",
+  ]
+  if (topicIndex % 3 === 0) {
+    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
+    main = location + "\n" + main
+    console.log(`朝地域フレーズ追加: ${location}`)
+  }
+
   return { main, reply }
 }
 
@@ -635,6 +648,19 @@ REPLY:
     const follow = followOptions[globalIndexC % followOptions.length]
     reply = reply + "\n\n" + follow
     console.log(`フォロー訴求追加: ${follow}`)
+  }
+
+  // 地域フレーズ：3投稿に1回、メインの冒頭に追加
+  const locationOptions = [
+    "川崎市宮前区エリアで頭痛・肩こりに悩んでいるあなたへ",
+    "川崎市宮前区エリアで慢性的な肩こりに長年悩んでいるあなたへ",
+    "川崎市宮前区エリアで猫背・姿勢の悪さが気になるあなたへ",
+    "川崎市宮前区エリアで頭痛薬に頼り続けているあなたへ",
+  ]
+  if (topicIndex % 3 === 0) {
+    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
+    main = location + "\n" + main
+    console.log(`地域フレーズ追加: ${location}`)
   }
 
   return { main, reply }
