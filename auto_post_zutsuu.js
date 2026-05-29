@@ -712,19 +712,10 @@ async function getContent(topicIndex = 0, alreadyGenerated = []) {
   }
 }
 
-// ハッシュタグセット（4パターンをローテーション）
-const hashtagSets = [
-  "#頭痛持ち #肩こり解消 #40代女性 #姿勢改善 #頭痛改善",
-  "#肩こり #頭痛 #猫背改善 #50代女性 #自律神経",
-  "#頭痛改善 #肩こり改善 #40代50代 #整骨院 #姿勢",
-  "#慢性頭痛 #肩こり #貧血 #鉄分不足 #女性の健康",
-]
-
 async function main() {
   const totalPosts = 3
   const jstHour = (new Date().getUTCHours() + 9) % 24
   const isMorning = jstHour >= 4 && jstHour < 10
-  const execOrder = jstHour < 10 ? 0 : jstHour < 16 ? 1 : jstHour < 21 ? 2 : 3
   const alreadyGenerated = []
 
   for (let i = 1; i <= totalPosts; i++) {
@@ -749,12 +740,6 @@ async function main() {
     } else {
       mainText = await getContent(i - 1, alreadyGenerated)
     }
-
-    // ハッシュタグを追加（グローバルインデックスでローテーション）
-    const globalIdx = execOrder * totalPosts + (i - 1)
-    const hashtags = hashtagSets[globalIdx % hashtagSets.length]
-    mainText = mainText + "\n\n" + hashtags
-    console.log(`ハッシュタグ追加: ${hashtags}`)
 
     console.log("\n--- メイン投稿 ---")
     console.log(mainText)

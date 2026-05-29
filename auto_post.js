@@ -882,19 +882,10 @@ async function getContent(topicIndex = 0, alreadyGenerated = []) {
   }
 }
 
-// ハッシュタグセット（4パターンをローテーション）
-const hashtagSets = [
-  "#ダイエット #40代女性 #血糖値改善 #健康的に痩せる #更年期ダイエット",
-  "#痩せない #40代50代 #食事改善 #体重管理 #ダイエット方法",
-  "#健康 #血糖値 #高血圧 #コレステロール #40代女性の健康",
-  "#更年期 #代謝アップ #たんぱく質 #脂肪燃焼 #ダイエット記録",
-]
-
 async function main() {
   const totalPosts = 8
   const jstHour = (new Date().getUTCHours() + 9) % 24
   const isMorning = jstHour >= 4 && jstHour < 10
-  const execOrder = jstHour < 10 ? 0 : jstHour < 16 ? 1 : jstHour < 21 ? 2 : 3
   const alreadyGenerated = [] // 生成済み投稿を蓄積（重複防止用）
 
   for (let i = 1; i <= totalPosts; i++) {
@@ -930,12 +921,6 @@ async function main() {
     } else {
       mainText = await getContent(i - 1, alreadyGenerated)
     }
-
-    // ハッシュタグを追加（グローバルインデックスでローテーション）
-    const globalIdx = execOrder * totalPosts + (i - 1)
-    const hashtags = hashtagSets[globalIdx % hashtagSets.length]
-    mainText = mainText + "\n\n" + hashtags
-    console.log(`ハッシュタグ追加: ${hashtags}`)
 
     console.log("\n--- メイン投稿 ---")
     console.log(mainText)
