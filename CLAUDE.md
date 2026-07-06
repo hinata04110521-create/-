@@ -104,6 +104,25 @@
 
 ---
 
+## ホットペッパーブログ案の自動生成（LINE送信）
+
+### 仕組み
+- **スケジューラー**：GitHub Actionsのschedule（毎日7:00 JST）
+- **GitHub Actions**：`.github/workflows/hotpepper_blog.yml`
+- **生成スクリプト**：`hotpepper_blog.js`
+- サロンボードには公式APIがないため、記事生成→LINE受信→手動コピペで投稿する運用
+
+### 内容
+- テーマは日替わりローテーション（頭痛・肩こり・姿勢／鉄分・貧血／ダイエット・健康／生活習慣の28種）
+- タイトル28文字目安（50文字で強制カット）＋本文400〜600文字
+- 構成：共感の導入 → 原因解説 → セルフケア → 来店誘導の締め
+- LINEには2通で届く（1通目：タイトル、2通目：本文のみ→そのまま長押しコピペできる）
+- LINE未設定の場合はGmail（REPORT_EMAIL宛）にフォールバック
+
+### GitHub Secrets（要追加）
+- LINE_CHANNEL_ACCESS_TOKEN：LINE公式アカウントのMessaging APIチャネルアクセストークン
+- LINE_USER_ID：自分のLINEユーザーID（LINE Developersのチャネル基本設定「あなたのユーザーID」）
+
 ## Vercelデプロイ（コールバック用）
 - URL：https://threads-callback-sandy.vercel.app
 - /api/callback：OAuthリダイレクト
