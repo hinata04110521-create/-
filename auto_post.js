@@ -798,6 +798,18 @@ async function getBestPost(timeSlot) {
   }
 }
 
+// 会話誘発型（質問）投稿をランダムに1つ返す（{main, reply}）
+function getEngagementPost() {
+  try {
+    const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
+    const list = posts.engagement || []
+    if (list.length === 0) return null
+    return list[Math.floor(Math.random() * list.length)]
+  } catch {
+    return null
+  }
+}
+
 // 現在の JST 時間に応じてコンテンツを決定
 async function getContent(topicIndex = 0, alreadyGenerated = []) {
   const jstHour = (new Date().getUTCHours() + 9) % 24
@@ -839,6 +851,18 @@ async function main() {
       console.log("タイプ: キャンペーン告知投稿")
       mainText = await generatePromotionPost(alreadyGenerated)
       if (!mainText) {
+        const generated = await getContent(i - 1, alreadyGenerated)
+        mainText = generated.main
+        replyText = generated.reply
+      }
+    } else if (!isMorning && i === 1) {
+      // 各実行の1枠目は会話誘発型（質問）投稿で返信・会話を生む
+      const eng = getEngagementPost()
+      if (eng) {
+        console.log("タイプ: 会話誘発型（質問）投稿")
+        mainText = eng.main
+        replyText = eng.reply || null
+      } else {
         const generated = await getContent(i - 1, alreadyGenerated)
         mainText = generated.main
         replyText = generated.reply
