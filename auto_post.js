@@ -340,24 +340,11 @@ REPLY:
   let main = mainMatch ? mainMatch[1].trim() : text
   let reply = replyMatch ? replyMatch[1].trim() : null
 
-  // 3投稿に1回、返信の末尾にCTAを追加
-  if (topicIndex % 3 === 2 && reply) {
+  // CTAは控えめに（4投稿に1回だけ、返信の末尾に自然に）
+  if (topicIndex % 4 === 3 && reply) {
     const cta = ctaOptions[topicIndex % ctaOptions.length]
     reply = reply + "\n\n" + cta
     console.log(`朝CTA追加: ${cta}`)
-  }
-
-  // 3投稿に1回、メイン投稿の冒頭に地域フレーズを追加（CTAと別タイミング）
-  const locationOptions = [
-    "川崎市宮前区エリアで体重が減らなくて悩んでいるあなたへ",
-    "川崎市宮前区エリアで血糖値・血圧が気になって悩んでいるあなたへ",
-    "川崎市宮前区エリアでダイエットに何度も失敗して悩んでいるあなたへ",
-    "川崎市宮前区エリアで膝・腰の痛みと体重増加で悩んでいるあなたへ",
-  ]
-  if (topicIndex % 3 === 0) {
-    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
-    main = location + "\n" + main
-    console.log(`朝地域フレーズ追加: ${location}`)
   }
 
   return { main, reply }
@@ -600,19 +587,6 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 - 刃を研ぐ：食事だけでなく睡眠・ストレス・体全体をバランスよく整えることが継続のカギ
 ※本のタイトルや著者名には絶対に触れないこと。考え方だけを投稿に自然に溶け込ませること。`
 
-  const followOptions = [
-    "他にもダイエット・健康に関する情報を毎日発信しています。参考になったらフォローしてお待ちください！",
-    "40・50代女性の食事・血糖値・体重管理の情報を毎日発信中。ぜひフォローしてください！",
-    "他にも痩せる食べ方・血糖値改善の情報を発信しています。フォローしておくと役立つ情報が届きます。",
-  ]
-
-  const locationOptions = [
-    "川崎市宮前区エリアで体重が減らなくて悩んでいるあなたへ",
-    "川崎市宮前区エリアで血糖値・血圧が気になって悩んでいるあなたへ",
-    "川崎市宮前区エリアでダイエットに何度も失敗して悩んでいるあなたへ",
-    "川崎市宮前区エリアで膝・腰の痛みと体重増加で悩んでいるあなたへ",
-  ]
-
   const timeSlotHint = {
     morning: "朝起きたばかりの時間帯。「また今日も体重が…」など朝のリアルな共感で始める。",
     lunch: "コンビニ・定食屋・外食など昼のリアルな場面を使う。「今日のランチから使える」即効性を意識する。",
@@ -645,10 +619,12 @@ REPLY:
 
 【REPLYのルール】
 - 具体的な数字・食材名・時間を使う（例：「食後20分以内に〇〇する」「たんぱく質を毎食20g摂る」）
-- 手順がある場合は番号で書く（①→②→③）
+- 構成は毎回同じにしない。番号リスト・短い体験談・たった1つの提案・比較など、テーマに合う形を選ぶ（毎回①→②→③にしない）
 - 「なぜかというと、〜」で仕組みを1文説明する
 - ダイエットを軸に血糖値・糖尿病・高血圧・コレステロールも自然に織り交ぜる
+- 最後は読者が思わずコメントしたくなる一言で終える（例：「あなたは朝ごはん、食べる派？抜く派？」）。ただし毎回質問にはせず、2回に1回程度でよい
 - 「また明日も頑張ろう」などの締めくくりフレーズは絶対に使わない
+- 宣伝・フォロー誘導・「フォローしてください」は書かない（別途コードで付与するため）
 - ハッシュタグなし・絵文字なし・見出し記号なし
 - MAIN:とREPLY:のラベル以外の説明文・前置きは一切不要
 
@@ -700,25 +676,11 @@ REPLY:
     console.log(`返信文字数カット → ${reply.length}文字`)
   }
 
-  // 3投稿に1回CTAを返信に追加
-  if (topicIndex % 3 === 2) {
+  // CTAは控えめに（4投稿に1回だけ、返信の末尾に自然に）
+  if (topicIndex % 4 === 3) {
     const cta = ctaOptions[topicIndex % ctaOptions.length]
     if (reply) { reply = reply + "\n\n" + cta } else { main = main + "\n" + cta }
     console.log(`CTA追加: ${cta}`)
-  }
-
-  // 2投稿に1回フォロー訴求を返信に追加
-  if (reply && topicIndex % 2 === 0) {
-    const follow = followOptions[topicIndex % followOptions.length]
-    reply = reply + "\n\n" + follow
-    console.log(`フォロー訴求追加`)
-  }
-
-  // 3投稿に1回メインの冒頭に地域フレーズを追加
-  if (topicIndex % 3 === 0) {
-    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
-    main = location + "\n" + main
-    console.log(`地域フレーズ追加: ${location}`)
   }
 
   return { main, reply }

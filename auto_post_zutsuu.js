@@ -311,27 +311,14 @@ REPLY:
   const main = mainMatch ? mainMatch[1].trim() : text
   let reply = replyMatch ? replyMatch[1].trim() : null
 
-  // 1日8投稿の通し番号でCTAを制御（3投稿に1回）
+  // 1日8投稿の通し番号でCTAを制御（4投稿に1回だけ、控えめに）
   const jstHourM = (new Date().getUTCHours() + 9) % 24
   const execOrderM = jstHourM < 10 ? 0 : jstHourM < 16 ? 1 : jstHourM < 21 ? 2 : 3
-  const globalIndexM = execOrderM * 5 + topicIndex
-  if (globalIndexM % 3 === 2 && reply) {
+  const globalIndexM = execOrderM * 2 + topicIndex
+  if (globalIndexM % 4 === 3 && reply) {
     const cta = ctaOptions[globalIndexM % ctaOptions.length]
     reply = reply + "\n\n" + cta
     console.log(`朝CTA追加: ${cta}`)
-  }
-
-  // 地域フレーズ：3投稿に1回、メインの冒頭に追加
-  const locationOptions = [
-    "川崎市宮前区エリアで頭痛・肩こりに悩んでいるあなたへ",
-    "川崎市宮前区エリアで慢性的な肩こりに長年悩んでいるあなたへ",
-    "川崎市宮前区エリアで猫背・姿勢の悪さが気になるあなたへ",
-    "川崎市宮前区エリアで頭痛薬に頼り続けているあなたへ",
-  ]
-  if (topicIndex % 3 === 0) {
-    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
-    main = location + "\n" + main
-    console.log(`朝地域フレーズ追加: ${location}`)
   }
 
   return { main, reply }
@@ -531,12 +518,6 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
     "3ヶ月で姿勢を変えたい方は、プロフィールのLINEから相談できます。",
   ]
 
-  const followOptions = [
-    "他にも頭痛・肩こりの情報を毎日発信しています。参考になったらフォローしてお待ちください！",
-    "頭痛・姿勢に関する情報を毎日発信中。フォローしておくと役立つ情報が届きます。",
-    "他にも薬に頼らない頭痛改善の情報を発信しています。ぜひフォローしてください！",
-  ]
-
   const commonPromptBase = `あなたは頭痛・肩こり・猫背改善の専門家（整骨院の先生）です。
 ${audience}
 ${styleGuide}
@@ -566,10 +547,12 @@ REPLY:
 
 【REPLYのルール】
 - 具体的な数字・秒数・センチなどを使う（例：「耳を3センチ引っ張って5秒キープ」）
-- 手順がある場合は番号で書く（例：①→②→③）
+- 構成は毎回同じにしない。番号リスト・短い実例・たった1つのケア・比較など、テーマに合う形を選ぶ（毎回①→②→③にしない）
 - 「なぜかというと、〜」で仕組みを1文説明する
 - 40代・50代女性の「あるある」なシーン・言葉を積極的に使う
+- 最後は読者が思わず反応したくなる一言で終える（例：「あなたの頭痛は、朝と夕方どっちがつらい？」）。ただし毎回質問にはせず、2回に1回程度でよい
 - 「また明日も頑張ろう」などの締めくくりフレーズは絶対に使わない
+- 宣伝・フォロー誘導・「フォローしてください」は書かない（別途コードで付与するため）
 - ハッシュタグなし・絵文字なし・見出し記号なし
 - MAIN:とREPLY:のラベル以外の説明文・前置き・ラベルは一切不要`
 
@@ -629,11 +612,11 @@ REPLY:
     console.log(`返信文字数カット → ${reply.length}文字`)
   }
 
-  // 1日の通し番号でCTA制御（3投稿に1回、返信に追加）
+  // 1日の通し番号でCTA制御（1日8投稿：4投稿に1回だけ、控えめに返信へ追加）
   const jstHourC = (new Date().getUTCHours() + 9) % 24
   const execOrderC = jstHourC < 10 ? 0 : jstHourC < 16 ? 1 : jstHourC < 21 ? 2 : 3
-  const globalIndexC = execOrderC * 5 + topicIndex
-  if (globalIndexC % 3 === 2) {
+  const globalIndexC = execOrderC * 2 + topicIndex
+  if (globalIndexC % 4 === 3) {
     const cta = ctaOptions[globalIndexC % ctaOptions.length]
     if (reply) {
       reply = reply + "\n\n" + cta
@@ -641,26 +624,6 @@ REPLY:
       main = main + "\n" + cta
     }
     console.log(`CTA追加: ${cta}`)
-  }
-
-  // フォロー訴求：2投稿に1回、返信の末尾に追加
-  if (reply && globalIndexC % 2 === 0) {
-    const follow = followOptions[globalIndexC % followOptions.length]
-    reply = reply + "\n\n" + follow
-    console.log(`フォロー訴求追加: ${follow}`)
-  }
-
-  // 地域フレーズ：3投稿に1回、メインの冒頭に追加
-  const locationOptions = [
-    "川崎市宮前区エリアで頭痛・肩こりに悩んでいるあなたへ",
-    "川崎市宮前区エリアで慢性的な肩こりに長年悩んでいるあなたへ",
-    "川崎市宮前区エリアで猫背・姿勢の悪さが気になるあなたへ",
-    "川崎市宮前区エリアで頭痛薬に頼り続けているあなたへ",
-  ]
-  if (topicIndex % 3 === 0) {
-    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
-    main = location + "\n" + main
-    console.log(`地域フレーズ追加: ${location}`)
   }
 
   return { main, reply }
@@ -687,7 +650,7 @@ async function getContent(topicIndex = 0, alreadyGenerated = []) {
 }
 
 async function main() {
-  const totalPosts = 5
+  const totalPosts = 2
   const jstHour = (new Date().getUTCHours() + 9) % 24
   const isMorning = jstHour >= 4 && jstHour < 10
   const alreadyGenerated = []
