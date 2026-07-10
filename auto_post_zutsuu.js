@@ -324,10 +324,10 @@ REPLY:
   const main = mainMatch ? mainMatch[1].trim() : text
   let reply = replyMatch ? replyMatch[1].trim() : null
 
-  // 1日8投稿の通し番号でCTAを制御（4投稿に1回だけ、控えめに）
+  // 1日20投稿の通し番号でCTAを制御（4投稿に1回だけ、控えめに）
   const jstHourM = (new Date().getUTCHours() + 9) % 24
   const execOrderM = jstHourM < 10 ? 0 : jstHourM < 16 ? 1 : jstHourM < 21 ? 2 : 3
-  const globalIndexM = execOrderM * 2 + topicIndex
+  const globalIndexM = execOrderM * 5 + topicIndex
   if (globalIndexM % 4 === 3 && reply) {
     const cta = ctaOptions[globalIndexM % ctaOptions.length]
     reply = reply + "\n\n" + cta
@@ -625,10 +625,10 @@ REPLY:
     console.log(`返信文字数カット → ${reply.length}文字`)
   }
 
-  // 1日の通し番号でCTA制御（1日8投稿：4投稿に1回だけ、控えめに返信へ追加）
+  // 1日の通し番号でCTA制御（1日20投稿：4投稿に1回だけ、控えめに返信へ追加）
   const jstHourC = (new Date().getUTCHours() + 9) % 24
   const execOrderC = jstHourC < 10 ? 0 : jstHourC < 16 ? 1 : jstHourC < 21 ? 2 : 3
-  const globalIndexC = execOrderC * 2 + topicIndex
+  const globalIndexC = execOrderC * 5 + topicIndex
   if (globalIndexC % 4 === 3) {
     const cta = ctaOptions[globalIndexC % ctaOptions.length]
     if (reply) {
@@ -675,7 +675,7 @@ async function getContent(topicIndex = 0, alreadyGenerated = []) {
 }
 
 async function main() {
-  const totalPosts = 2
+  const totalPosts = 5
   const jstHour = (new Date().getUTCHours() + 9) % 24
   const isMorning = jstHour >= 4 && jstHour < 10
   const alreadyGenerated = []
