@@ -32,6 +32,19 @@ async function callAnthropicWithRetry(client, params, maxRetries = 3) {
   }
 }
 
+// APIレスポンスを安全にパース（空・非JSONでもクラッシュさせず、原因の分かるエラーを返す）
+function parseApiResponse(data, statusCode) {
+  const raw = (data || "").trim()
+  if (raw === "") {
+    return { error: { message: `空のレスポンス（HTTP ${statusCode || "不明"}）。トークン失効・レート制限・アカウント制限の可能性があります` } }
+  }
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return { error: { message: `JSON以外のレスポンス（HTTP ${statusCode || "不明"}）: ${raw.slice(0, 200)}` } }
+  }
+}
+
 // Threads API に POST
 function threadsFetch(url, params) {
   return new Promise((resolve, reject) => {
@@ -46,7 +59,7 @@ function threadsFetch(url, params) {
     const req = https.request(url, options, (res) => {
       let data = ""
       res.on("data", (chunk) => (data += chunk))
-      res.on("end", () => resolve(JSON.parse(data)))
+      res.on("end", () => resolve(parseApiResponse(data, res.statusCode)))
     })
     req.on("error", reject)
     req.write(body)
@@ -60,7 +73,7 @@ function threadsGet(url) {
     const req = https.get(url, (res) => {
       let data = ""
       res.on("data", (chunk) => (data += chunk))
-      res.on("end", () => resolve(JSON.parse(data)))
+      res.on("end", () => resolve(parseApiResponse(data, res.statusCode)))
     })
     req.on("error", reject)
   })
@@ -340,24 +353,11 @@ REPLY:
   let main = mainMatch ? mainMatch[1].trim() : text
   let reply = replyMatch ? replyMatch[1].trim() : null
 
-  // 3投稿に1回、返信の末尾にCTAを追加
-  if (topicIndex % 3 === 2 && reply) {
+  // CTAは控えめに（4投稿に1回だけ、返信の末尾に自然に）
+  if (topicIndex % 4 === 3 && reply) {
     const cta = ctaOptions[topicIndex % ctaOptions.length]
     reply = reply + "\n\n" + cta
     console.log(`朝CTA追加: ${cta}`)
-  }
-
-  // 3投稿に1回、メイン投稿の冒頭に地域フレーズを追加（CTAと別タイミング）
-  const locationOptions = [
-    "川崎市宮前区エリアで体重が減らなくて悩んでいるあなたへ",
-    "川崎市宮前区エリアで血糖値・血圧が気になって悩んでいるあなたへ",
-    "川崎市宮前区エリアでダイエットに何度も失敗して悩んでいるあなたへ",
-    "川崎市宮前区エリアで膝・腰の痛みと体重増加で悩んでいるあなたへ",
-  ]
-  if (topicIndex % 3 === 0) {
-    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
-    main = location + "\n" + main
-    console.log(`朝地域フレーズ追加: ${location}`)
   }
 
   return { main, reply }
@@ -600,19 +600,6 @@ ${alreadyGenerated.map((t, i) => `--- 既出${i + 1} ---\n${t}`).join("\n\n")}
 - 刃を研ぐ：食事だけでなく睡眠・ストレス・体全体をバランスよく整えることが継続のカギ
 ※本のタイトルや著者名には絶対に触れないこと。考え方だけを投稿に自然に溶け込ませること。`
 
-  const followOptions = [
-    "他にもダイエット・健康に関する情報を毎日発信しています。参考になったらフォローしてお待ちください！",
-    "40・50代女性の食事・血糖値・体重管理の情報を毎日発信中。ぜひフォローしてください！",
-    "他にも痩せる食べ方・血糖値改善の情報を発信しています。フォローしておくと役立つ情報が届きます。",
-  ]
-
-  const locationOptions = [
-    "川崎市宮前区エリアで体重が減らなくて悩んでいるあなたへ",
-    "川崎市宮前区エリアで血糖値・血圧が気になって悩んでいるあなたへ",
-    "川崎市宮前区エリアでダイエットに何度も失敗して悩んでいるあなたへ",
-    "川崎市宮前区エリアで膝・腰の痛みと体重増加で悩んでいるあなたへ",
-  ]
-
   const timeSlotHint = {
     morning: "朝起きたばかりの時間帯。「また今日も体重が…」など朝のリアルな共感で始める。",
     lunch: "コンビニ・定食屋・外食など昼のリアルな場面を使う。「今日のランチから使える」即効性を意識する。",
@@ -645,10 +632,12 @@ REPLY:
 
 【REPLYのルール】
 - 具体的な数字・食材名・時間を使う（例：「食後20分以内に〇〇する」「たんぱく質を毎食20g摂る」）
-- 手順がある場合は番号で書く（①→②→③）
+- 構成は毎回同じにしない。番号リスト・短い体験談・たった1つの提案・比較など、テーマに合う形を選ぶ（毎回①→②→③にしない）
 - 「なぜかというと、〜」で仕組みを1文説明する
 - ダイエットを軸に血糖値・糖尿病・高血圧・コレステロールも自然に織り交ぜる
+- 最後は読者が思わずコメントしたくなる一言で終える（例：「あなたは朝ごはん、食べる派？抜く派？」）。ただし毎回質問にはせず、2回に1回程度でよい
 - 「また明日も頑張ろう」などの締めくくりフレーズは絶対に使わない
+- 宣伝・フォロー誘導・「フォローしてください」は書かない（別途コードで付与するため）
 - ハッシュタグなし・絵文字なし・見出し記号なし
 - MAIN:とREPLY:のラベル以外の説明文・前置きは一切不要
 
@@ -700,25 +689,11 @@ REPLY:
     console.log(`返信文字数カット → ${reply.length}文字`)
   }
 
-  // 3投稿に1回CTAを返信に追加
-  if (topicIndex % 3 === 2) {
+  // CTAは控えめに（4投稿に1回だけ、返信の末尾に自然に）
+  if (topicIndex % 4 === 3) {
     const cta = ctaOptions[topicIndex % ctaOptions.length]
     if (reply) { reply = reply + "\n\n" + cta } else { main = main + "\n" + cta }
     console.log(`CTA追加: ${cta}`)
-  }
-
-  // 2投稿に1回フォロー訴求を返信に追加
-  if (reply && topicIndex % 2 === 0) {
-    const follow = followOptions[topicIndex % followOptions.length]
-    reply = reply + "\n\n" + follow
-    console.log(`フォロー訴求追加`)
-  }
-
-  // 3投稿に1回メインの冒頭に地域フレーズを追加
-  if (topicIndex % 3 === 0) {
-    const location = locationOptions[Math.floor(topicIndex / 3) % locationOptions.length]
-    main = location + "\n" + main
-    console.log(`地域フレーズ追加: ${location}`)
   }
 
   return { main, reply }
@@ -836,6 +811,18 @@ async function getBestPost(timeSlot) {
   }
 }
 
+// 会話誘発型（質問）投稿をランダムに1つ返す（{main, reply}）
+function getEngagementPost() {
+  try {
+    const posts = JSON.parse(fs.readFileSync(path.join(__dirname, "posts.json"), "utf-8"))
+    const list = posts.engagement || []
+    if (list.length === 0) return null
+    return list[Math.floor(Math.random() * list.length)]
+  } catch {
+    return null
+  }
+}
+
 // 現在の JST 時間に応じてコンテンツを決定
 async function getContent(topicIndex = 0, alreadyGenerated = []) {
   const jstHour = (new Date().getUTCHours() + 9) % 24
@@ -863,10 +850,12 @@ async function main() {
   const jstHour = (new Date().getUTCHours() + 9) % 24
   const isMorning = jstHour >= 4 && jstHour < 10
   const alreadyGenerated = [] // 生成済み投稿を蓄積（重複防止用）
+  let failureCount = 0
 
   for (let i = 1; i <= totalPosts; i++) {
     console.log(`\n===== 投稿 ${i}/${totalPosts} =====`)
 
+    try {
     let mainText, replyText = null
 
     // 最終投稿スロット（夜以外）はキャンペーン投稿に差し替え
@@ -877,6 +866,18 @@ async function main() {
       console.log("タイプ: キャンペーン告知投稿")
       mainText = await generatePromotionPost(alreadyGenerated)
       if (!mainText) {
+        const generated = await getContent(i - 1, alreadyGenerated)
+        mainText = generated.main
+        replyText = generated.reply
+      }
+    } else if (!isMorning && i === 1) {
+      // 各実行の1枠目は会話誘発型（質問）投稿で返信・会話を生む
+      const eng = getEngagementPost()
+      if (eng) {
+        console.log("タイプ: 会話誘発型（質問）投稿")
+        mainText = eng.main
+        replyText = eng.reply || null
+      } else {
         const generated = await getContent(i - 1, alreadyGenerated)
         mainText = generated.main
         replyText = generated.reply
@@ -923,9 +924,18 @@ async function main() {
       }
       console.log(`投稿成功！ ${i}/${totalPosts}`)
     }
+    } catch (e) {
+      failureCount++
+      console.error(`投稿 ${i}/${totalPosts} をスキップ（残りは継続）: ${e.message}`)
+    }
 
     // 投稿間隔（レート制限対策）
     if (i < totalPosts) await new Promise((r) => setTimeout(r, 5000))
+  }
+
+  if (failureCount > 0) {
+    console.error(`\n⚠ ${failureCount}/${totalPosts} 件の投稿が失敗しました。THREADS_ACCESS_TOKEN の失効・レート制限・アカウント制限を確認してください。`)
+    process.exit(1)
   }
 }
 
