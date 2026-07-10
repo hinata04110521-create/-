@@ -32,6 +32,19 @@ async function callAnthropicWithRetry(client, params, maxRetries = 3) {
   }
 }
 
+// APIレスポンスを安全にパース（空・非JSONでもクラッシュさせず、原因の分かるエラーを返す）
+function parseApiResponse(data, statusCode) {
+  const raw = (data || "").trim()
+  if (raw === "") {
+    return { error: { message: `空のレスポンス（HTTP ${statusCode || "不明"}）。トークン失効・レート制限・アカウント制限の可能性があります` } }
+  }
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return { error: { message: `JSON以外のレスポンス（HTTP ${statusCode || "不明"}）: ${raw.slice(0, 200)}` } }
+  }
+}
+
 // Threads API に POST
 function threadsFetch(url, params) {
   return new Promise((resolve, reject) => {
@@ -46,7 +59,7 @@ function threadsFetch(url, params) {
     const req = https.request(url, options, (res) => {
       let data = ""
       res.on("data", (chunk) => (data += chunk))
-      res.on("end", () => resolve(JSON.parse(data)))
+      res.on("end", () => resolve(parseApiResponse(data, res.statusCode)))
     })
     req.on("error", reject)
     req.write(body)
@@ -60,7 +73,7 @@ function threadsGet(url) {
     const req = https.get(url, (res) => {
       let data = ""
       res.on("data", (chunk) => (data += chunk))
-      res.on("end", () => resolve(JSON.parse(data)))
+      res.on("end", () => resolve(parseApiResponse(data, res.statusCode)))
     })
     req.on("error", reject)
   })
@@ -837,10 +850,12 @@ async function main() {
   const jstHour = (new Date().getUTCHours() + 9) % 24
   const isMorning = jstHour >= 4 && jstHour < 10
   const alreadyGenerated = [] // 生成済み投稿を蓄積（重複防止用）
+  let failureCount = 0
 
   for (let i = 1; i <= totalPosts; i++) {
     console.log(`\n===== 投稿 ${i}/${totalPosts} =====`)
 
+    try {
     let mainText, replyText = null
 
     // 最終投稿スロット（夜以外）はキャンペーン投稿に差し替え
@@ -909,9 +924,18 @@ async function main() {
       }
       console.log(`投稿成功！ ${i}/${totalPosts}`)
     }
+    } catch (e) {
+      failureCount++
+      console.error(`投稿 ${i}/${totalPosts} をスキップ（残りは継続）: ${e.message}`)
+    }
 
     // 投稿間隔（レート制限対策）
     if (i < totalPosts) await new Promise((r) => setTimeout(r, 5000))
+  }
+
+  if (failureCount > 0) {
+    console.error(`\n⚠ ${failureCount}/${totalPosts} 件の投稿が失敗しました。THREADS_ACCESS_TOKEN の失効・レート制限・アカウント制限を確認してください。`)
+    process.exit(1)
   }
 }
 
