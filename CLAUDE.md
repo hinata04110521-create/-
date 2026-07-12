@@ -119,6 +119,34 @@
 
 ---
 
+## hinata_aisupport（AI導入支援アカウント）
+
+### アカウント情報
+- テーマ：整骨院・整体・サロン向けのAI導入支援（BtoB）
+- ターゲット：整骨院・整体院・エステ/サロンの院長・オーナー・施術者（個人〜小規模、集客・予約・事務に追われ、ITは苦手）
+- トーン：共感より「今すぐ使える実務ノウハウ」を提供するコンサル目線
+
+### 投稿の仕組み
+- **スケジューラー**：cron-job.org（新トリガーを追加）
+- **GitHub Actions**：`.github/workflows/auto_post_aisupport.yml`
+- **投稿スクリプト**：`auto_post_aisupport.js`
+- **固定投稿データ**：`posts_aisupport.json`
+- **投稿数**：1回2投稿×4回＝8投稿/日（朝は固定投稿優先、昼夕夜の1枠目は会話誘発型）
+
+### 投稿テーマ
+- 予約・問い合わせ対応の自動化（LINE公式・チャットボット・AI音声）
+- 口コミ返信・SNS投稿文・ブログをAIで作成
+- 無断キャンセル削減、リピート促進、顧客管理のデジタル化
+- 「手作業でやってること、実はAIで数分」系のノウハウ
+- CTAは4投稿に1回だけ（AI導入相談のLINE誘導）
+
+### GitHub Secrets
+- THREADS_ACCESS_TOKEN_AISUPPORT
+- THREADS_USER_ID_AISUPPORT
+（ANTHROPIC_API_KEY・TAVILY_API_KEYは共通）
+
+---
+
 ## Vercelデプロイ（コールバック用）
 - URL：https://threads-callback-sandy.vercel.app
 - /api/callback：OAuthリダイレクト
