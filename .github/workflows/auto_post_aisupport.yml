@@ -1,11 +1,6 @@
 name: Threads 自動投稿（AIサポート）
 
 on:
-  schedule:
-    - cron: '0 3 * * *'
-    - cron: '0 8 * * *'
-    - cron: '0 12 * * *'
-    - cron: '0 21 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
