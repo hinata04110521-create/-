@@ -1,0 +1,42 @@
+name: X 自動投稿（女性の健康）
+
+on:
+  schedule:
+    - cron: '0 21 * * *'   # JST 6:00
+    - cron: '0 3 * * *'    # JST 12:00
+    - cron: '0 8 * * *'    # JST 17:00
+    - cron: '0 12 * * *'   # JST 21:00
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '投稿しない（プレビューのみ）にする場合はtrueを選択'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 依存パッケージをインストール
+        run: npm install
+
+      - name: X に投稿
+        run: node auto_post_x_health.js
+        env:
+          X_HEALTH_API_KEY: ${{ secrets.X_HEALTH_API_KEY }}
+          X_HEALTH_API_SECRET: ${{ secrets.X_HEALTH_API_SECRET }}
+          X_HEALTH_ACCESS_TOKEN: ${{ secrets.X_HEALTH_ACCESS_TOKEN }}
+          X_HEALTH_ACCESS_TOKEN_SECRET: ${{ secrets.X_HEALTH_ACCESS_TOKEN_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
