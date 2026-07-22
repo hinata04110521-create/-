@@ -49,6 +49,20 @@ console.log("\n[3] 重複チェック（過去30日）")
   ok(!notDup, "40日前(30日外)は重複扱いしない")
 }
 
+console.log("\n[5] 反応データからの学習（categoryPerformance / buildEngagementHint）")
+{
+  const mk = (cat, likes, replies) => ({ category: cat, insights: { likes, replies, views: 100, reposts: 0 }, postedAt: new Date().toISOString() })
+  const hist = []
+  // clinic_problem を高反応、ai_philosophy を低反応で20件用意
+  for (let i = 0; i < 10; i++) hist.push(mk("clinic_problem", 8, 4))
+  for (let i = 0; i < 10; i++) hist.push(mk("ai_philosophy", 1, 0))
+  const rows = content.categoryPerformance(hist)
+  ok(rows[0].category === "clinic_problem", "高反応カテゴリーが上位に並ぶ")
+  const hint = content.buildEngagementHint(hist)
+  ok(hint.includes("治療院経営者の悩み"), "学習ヒントに伸びた型が入る")
+  ok(content.buildEngagementHint(hist.slice(0, 5)) === "", "データが少ないうちはヒントを出さない")
+}
+
 console.log("\n[4] generateCategoryPost（モックLLM：品質NG→リトライ→OK）")
 {
   // 1回目はダメな投稿、2回目で良い投稿を返すモッククライアント

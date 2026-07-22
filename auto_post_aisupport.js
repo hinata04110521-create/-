@@ -265,14 +265,14 @@ function cleanGenerated(t) {
 }
 
 // カテゴリー型の投稿を1本生成（品質チェック＋重複チェック、最大3回リトライ）
-async function generateCategoryPost({ client, recentCategories, history, metrics, forceQuestion = false }) {
+async function generateCategoryPost({ client, recentCategories, history, metrics, forceQuestion = false, engagementHint = "" }) {
   const categoryKey = content.pickCategory(recentCategories)
   const koseiKey = content.pickKosei(categoryKey)
   const avoidTexts = history.slice(-12).map((h) => h.text).filter(Boolean)
   let lastReasons = []
 
   for (let attempt = 1; attempt <= 3; attempt++) {
-    let prompt = content.buildPrompt({ categoryKey, koseiKey, metrics, avoidTexts })
+    let prompt = content.buildPrompt({ categoryKey, koseiKey, metrics, avoidTexts, engagementHint })
     if (forceQuestion) prompt += "\n\n【追加指示】必ず、読者が答えやすい短い質問文で締めること。"
     if (lastReasons.length) prompt += `\n\n【前回はこの理由で不採用。必ず直すこと】${lastReasons.join(" / ")}`
 
@@ -308,19 +308,21 @@ async function main() {
   const history = loadHistory()
   const metrics = loadMetrics()
   const recentCategories = history.slice(-6).map((h) => h.category).filter(Boolean)
-  console.log(`履歴: ${history.length}件 / 実績データ: ${metrics ? "あり" : "なし"}`)
+  // 反応データが十分溜まっていれば、伸びている型へ寄せるヒントを作る（少ないうちは空）
+  const engagementHint = content.buildEngagementHint(history)
+  console.log(`履歴: ${history.length}件 / 実績データ: ${metrics ? "あり" : "なし"} / 学習ヒント: ${engagementHint ? "あり" : "なし（データ蓄積中）"}`)
 
   let failureCount = 0
 
   for (let i = 1; i <= totalPosts; i++) {
     console.log(`\n===== 投稿 ${i}/${totalPosts} =====`)
     try {
-      // 直近10件の質問締め比率が50%未満なら、今回は質問締めを強制する
+      // 会話（返信）を増やすため、直近の質問締め比率が60%未満なら今回は質問締めを強制
       const recent = history.slice(-10)
       const qRatio = recent.length ? recent.filter((h) => h.hasQuestion).length / recent.length : 0
-      const forceQuestion = qRatio < 0.5
+      const forceQuestion = qRatio < 0.6
 
-      const gen = await generateCategoryPost({ client, recentCategories, history, metrics, forceQuestion })
+      const gen = await generateCategoryPost({ client, recentCategories, history, metrics, forceQuestion, engagementHint })
       if (!gen) {
         failureCount++
         console.error(`投稿 ${i}/${totalPosts}: 品質基準を満たせずスキップ`)

@@ -138,6 +138,18 @@ const GLOBAL_RULES = `【投稿文のルール（必ず守る）】
 - 誇張した成果・根拠のない数字は使わない。医療効果や集客成果を断定しない（「必ず」「絶対」「治る」等は禁止）。
 - 出力は投稿本文のみ。ラベル・前置き・説明・カテゴリー名・「MAIN:」等は一切書かない。`
 
+// ---- フック（最初の1行）と、会話を生む締めの強化 ----
+// いいね・フォローはThreadsでは「返信(会話)」の連鎖から生まれる。1行目で止め、答えやすい質問で締める。
+const HOOK_RULES = `【最初の1行（フック）で必ずスクロールを止める・最重要】
+- 1行目は短く、具体的な情景か意外な一言から入る（例：「今日、AIに口コミ返信を任せてみた。」「施術が終わった20時。」）。
+- 説明・前置き・一般論から始めない。「AIは便利です」のような優等生な出だしは禁止。
+- 数字や固有の場面（時間・業務名）を1行目に入れると止まりやすい。
+
+【締めは"一言で答えられる質問"で会話を生む・リーチが伸びる核心】
+- できるだけ2択（A/B）や「何分？」「どれ？」など、一言で返せる質問にする。
+- 「どう思いますか？」「教えてください」のような漠然とした問いは避ける。
+- 質問は1つだけ。あれこれ聞かない。`
+
 // ============================================================
 // 選択ロジック
 // ============================================================
@@ -170,7 +182,7 @@ function pickKosei(categoryKey) {
 
 // metrics: metrics_aisupport.json の中身（事実のみ）。無ければ null
 // avoidTexts: 直近投稿の本文配列（重複回避のためモデルに提示）
-function buildPrompt({ categoryKey, koseiKey, metrics = null, avoidTexts = [] }) {
+function buildPrompt({ categoryKey, koseiKey, metrics = null, avoidTexts = [], engagementHint = "" }) {
   const cat = CATEGORIES[categoryKey]
   const usesMetrics = ["case_study", "daily_report"].includes(categoryKey)
 
@@ -194,6 +206,8 @@ ${JSON.stringify(metrics, null, 2)}
 ${avoidTexts.slice(0, 12).map((t, i) => `--- ${i + 1} ---\n${t}`).join("\n\n")}
 ` : ""
 
+  const hintSection = engagementHint ? `\n${engagementHint}\n` : ""
+
   return `${WORLDVIEW}
 
 ${AUDIENCE}
@@ -201,8 +215,42 @@ ${AUDIENCE}
 ${cat.prompt}
 
 【今回の文章構成】${KOSEI[koseiKey]}
-${metricsSection}${avoidSection}
+${metricsSection}${avoidSection}${hintSection}
+${HOOK_RULES}
+
 ${GLOBAL_RULES}`
+}
+
+// ============================================================
+// 反応データからの学習（いいね・返信が良かった傾向を抽出）
+// ============================================================
+
+// history の各要素に insights:{views,likes,replies,...} が付いている前提で、
+// カテゴリー別の平均反応スコア（返信を重視）を高い順に返す
+function categoryPerformance(history = []) {
+  const agg = {}
+  for (const h of history) {
+    if (!h.category || !h.insights) continue
+    const ins = h.insights
+    const score = (ins.likes || 0) + (ins.replies || 0) * 2 + (ins.reposts || 0) * 2
+    if (!agg[h.category]) agg[h.category] = { n: 0, score: 0, likes: 0, replies: 0, views: 0 }
+    const a = agg[h.category]
+    a.n++; a.score += score; a.likes += ins.likes || 0; a.replies += ins.replies || 0; a.views += ins.views || 0
+  }
+  return Object.entries(agg)
+    .map(([category, a]) => ({ category, n: a.n, avgScore: a.score / a.n, avgLikes: a.likes / a.n, avgReplies: a.replies / a.n, avgViews: a.views / a.n }))
+    .sort((x, y) => y.avgScore - x.avgScore)
+}
+
+// 十分なデータが溜まったら、伸びているカテゴリーへ寄せるヒント文を返す（少ないうちは空）
+function buildEngagementHint(history = [], minSamples = 15) {
+  const withInsights = history.filter((h) => h.insights)
+  if (withInsights.length < minSamples) return ""
+  const rows = categoryPerformance(history).filter((r) => r.n >= 2)
+  if (rows.length < 2 || rows[0].avgScore <= 0) return ""
+  const top = rows.slice(0, 2).map((r) => CATEGORIES[r.category] && CATEGORIES[r.category].label).filter(Boolean)
+  if (top.length === 0) return ""
+  return `【これまで反応（いいね・返信）が良かった傾向】「${top.join("」「")}」系の投稿が伸びています。今回もこの方向の切り口・トーン・情景を意識してください。`
 }
 
 // ============================================================
@@ -294,7 +342,8 @@ function findDuplicate(text, history = [], days = 30) {
 }
 
 module.exports = {
-  WORLDVIEW, AUDIENCE, CATEGORIES, KOSEI, GLOBAL_RULES,
+  WORLDVIEW, AUDIENCE, CATEGORIES, KOSEI, GLOBAL_RULES, HOOK_RULES,
   pickCategory, pickKosei, buildPrompt,
+  categoryPerformance, buildEngagementHint,
   qualityCheck, similarity, findDuplicate, charCount, hasQuestion,
 }

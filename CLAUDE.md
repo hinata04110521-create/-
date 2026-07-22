@@ -149,8 +149,15 @@
 - THREADS_ACCESS_TOKEN_AISUPPORT / THREADS_USER_ID_AISUPPORT（ANTHROPIC_API_KEY・TAVILY_API_KEYは共通）
 - 履歴書き戻しのため workflow に `permissions: contents: write`（標準の GITHUB_TOKEN を使用、追加登録不要）
 
+### フック＆エンゲージメント強化（2026-07-22追加）
+- `content_aisupport.js` の `HOOK_RULES`：1行目でスクロールを止める（情景・具体・意外性）／締めは"一言で答えられる質問"（2択・「何分？」等、漠然とした問いは禁止）。質問締めの強制しきい値を60%に引き上げ
+- **反応の計測・学習**：`insights_aisupport.js` が Threads API から各投稿の 閲覧/いいね/返信/リポスト を取得し `history_aisupport.json` に記録＋カテゴリー別レポート出力。ワークフロー `insights_aisupport.yml`（手動 or cron）で実行し履歴を書き戻す
+  - 反応データが15件以上たまると `buildEngagementHint` が「伸びている型」を生成プロンプトに自動反映
+  - ※インサイト取得には token に `threads_manage_insights` スコープが必要（無い場合はレポートに失敗理由が出る）
+  - ⚠️ いいね・フォローの主因は「返信を生む投稿」＋「自分から他アカウントへ engagement する人の作業」。Bot単体では限界がある点は運用者に共有済み
+
 ### 動作確認
-- `node test_offline.js`（APIを使わずロジック検証：抽選分布/品質/重複/リトライ）
+- `node test_offline.js`（APIを使わずロジック検証：抽選分布/品質/重複/リトライ/学習）
 - GitHub Actions → Run workflow で `dry_run: true`（投稿せず生成内容だけログ確認）
 - ※旧「教える型」の `posts_aisupport.json`(morning/engagement) は本設計では未使用（残置。将来削除可）
 

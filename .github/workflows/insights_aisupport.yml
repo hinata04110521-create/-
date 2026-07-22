@@ -1,0 +1,44 @@
+name: Threads 反応レポート（AIサポート）
+
+on:
+  workflow_dispatch:
+
+# 投稿ワークフローと同じグループで直列化し、履歴ファイルの書き戻し衝突を防ぐ
+concurrency:
+  group: aisupport-post
+  cancel-in-progress: false
+
+jobs:
+  insights:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 依存パッケージをインストール
+        run: npm install
+
+      - name: 反応データを取得してレポート
+        run: node insights_aisupport.js
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN_AISUPPORT }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID_AISUPPORT }}
+
+      - name: 取得した反応データを保存
+        if: ${{ always() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add history_aisupport.json
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -m "chore: AIサポート反応データを更新 [skip ci]"
+            git pull --rebase --autostash || true
+            git push
+          fi
