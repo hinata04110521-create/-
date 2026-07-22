@@ -129,7 +129,7 @@
 
 ### 投稿の仕組み
 - **スケジューラー**：cron-job.org → **GitHub Actions**：`.github/workflows/auto_post_aisupport.yml`
-- **投稿スクリプト**：`auto_post_aisupport.js`（1回2投稿×4回＝8投稿/日、単発投稿・返信スレなし）
+- **投稿スクリプト**：`auto_post_aisupport.js`（1回5投稿×4回＝20投稿/日、単発投稿・返信スレなし）
 - **コンテンツ設計**：`content_aisupport.js`（カテゴリー定義・構成・投稿ルール・品質チェック・重複判定の純関数）
 - **投稿履歴**：`history_aisupport.json`（本文/カテゴリ/日時/結果/文字数/質問有無。本番投稿後にActionsがコミットで書き戻す）
 - **実績データ**：`metrics_aisupport.json`（手入力の"事実の数字"のみ。空なら数字を作らない）

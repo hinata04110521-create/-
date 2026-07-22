@@ -299,7 +299,7 @@ async function generateCategoryPost({ client, recentCategories, history, metrics
 }
 
 async function main() {
-  const totalPosts = 2
+  const totalPosts = 5
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY が設定されていません")
   const Anthropic = require("@anthropic-ai/sdk")
