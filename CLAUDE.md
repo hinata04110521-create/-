@@ -119,31 +119,40 @@
 
 ---
 
-## hinata_aisupport（AI導入支援アカウント）
+## hinata_aisupport（治療院の右腕AIを育てるアカウント）
 
-### アカウント情報
-- テーマ：整骨院・整体・サロン向けのAI導入支援（BtoB）
-- ターゲット：整骨院・整体院・エステ/サロンの院長・オーナー・施術者（個人〜小規模、集客・予約・事務に追われ、ITは苦手）
-- トーン：共感より「今すぐ使える実務ノウハウ」を提供するコンサル目線
+### コンセプト（2026-07-22 全面刷新）
+- テーマ：「治療院の右腕AIを育てる」／中心メッセージ「AIで時間を生み出し、人にしかできない仕事へ」
+- ターゲット：整骨院・整体・鍼灸・一人院・美容サロンの経営者。SNS/集客業務に疲れ、AIに興味はあるが使い方が分からない層
+- 世界観：AIを"教える先生"ではなく、自分の院を実験場に**右腕AI（新人スタッフ）を育てる当事者**。成功も失敗も公開し、生まれた「時間」を見せる
+- 目的：問い合わせ・相談につなげる（直接営業は全体の5%まで）
 
 ### 投稿の仕組み
-- **スケジューラー**：cron-job.org（新トリガーを追加）
-- **GitHub Actions**：`.github/workflows/auto_post_aisupport.yml`
-- **投稿スクリプト**：`auto_post_aisupport.js`
-- **固定投稿データ**：`posts_aisupport.json`
-- **投稿数**：1回2投稿×4回＝8投稿/日（朝は固定投稿優先、昼夕夜の1枠目は会話誘発型）
+- **スケジューラー**：cron-job.org → **GitHub Actions**：`.github/workflows/auto_post_aisupport.yml`
+- **投稿スクリプト**：`auto_post_aisupport.js`（1回2投稿×4回＝8投稿/日、単発投稿・返信スレなし）
+- **コンテンツ設計**：`content_aisupport.js`（カテゴリー定義・構成・投稿ルール・品質チェック・重複判定の純関数）
+- **投稿履歴**：`history_aisupport.json`（本文/カテゴリ/日時/結果/文字数/質問有無。本番投稿後にActionsがコミットで書き戻す）
+- **実績データ**：`metrics_aisupport.json`（手入力の"事実の数字"のみ。空なら数字を作らない）
 
-### 投稿テーマ
-- 予約・問い合わせ対応の自動化（LINE公式・チャットボット・AI音声）
-- 口コミ返信・SNS投稿文・ブログをAIで作成
-- 無断キャンセル削減、リピート促進、顧客管理のデジタル化
-- 「手作業でやってること、実はAIで数分」系のノウハウ
-- CTAは4投稿に1回だけ（AI導入相談のLINE誘導）
+### 7カテゴリー（週次比率で重み付け抽選）
+- AIスタッフ育成日記25% / AIスタッフの日報15% / 治療院経営者の悩み20% / AI活用の考え方15% / 実際の業務改善10% / 失敗談10% / サービス案内5%
+- 「問いかけ型」は独立カテゴリーではなく「全体の50%以上を質問で終える」ルールで担保（履歴の質問比率を見て強制）
+- 文章構成A〜E（悩み→気づき→改善→問い 等）をカテゴリーごとにランダム適用
 
-### GitHub Secrets
-- THREADS_ACCESS_TOKEN_AISUPPORT
-- THREADS_USER_ID_AISUPPORT
-（ANTHROPIC_API_KEY・TAVILY_API_KEYは共通）
+### 投稿ルール（品質ゲートで自動チェック）
+- 80〜250字目安・1文短く・改行多め・絵文字0〜2・ハッシュタグなし
+- 具体的な業務語を必ず入れる（抽象論だけはNG。※考え方カテゴリーは短く強い言い切りを許容）
+- 強い売り込み文句NG・医療/成果の断定NG（治る・完治・「必ず/絶対＋成果語」等）
+- 過去30日の投稿と類似（文字bigram Jaccard 0.55超）は重複として再生成。最大3回リトライして不可なら枠スキップ
+
+### GitHub Secrets / 権限
+- THREADS_ACCESS_TOKEN_AISUPPORT / THREADS_USER_ID_AISUPPORT（ANTHROPIC_API_KEY・TAVILY_API_KEYは共通）
+- 履歴書き戻しのため workflow に `permissions: contents: write`（標準の GITHUB_TOKEN を使用、追加登録不要）
+
+### 動作確認
+- `node test_offline.js`（APIを使わずロジック検証：抽選分布/品質/重複/リトライ）
+- GitHub Actions → Run workflow で `dry_run: true`（投稿せず生成内容だけログ確認）
+- ※旧「教える型」の `posts_aisupport.json`(morning/engagement) は本設計では未使用（残置。将来削除可）
 
 ---
 

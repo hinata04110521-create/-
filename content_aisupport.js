@@ -1,0 +1,300 @@
+// ============================================================
+// content_aisupport.js
+// 「治療院の右腕AIを育てる」アカウントのコンテンツ設計
+// ・7カテゴリー＋サービス案内（週次比率で重み付け抽選）
+// ・文章構成A〜E
+// ・投稿ルール（80〜250字・改行多め・質問締め50%以上 等）
+// ・品質チェック / 重複判定 のための純関数
+// このファイルはデータと純関数のみ。ファイルI/O・API通信は auto_post_aisupport.js 側。
+// ============================================================
+
+// ---- アカウントの世界観（全プロンプト共通の前提） ----
+const WORLDVIEW = `あなたは整骨院を経営する現役の院長「日向」です。
+「治療院の右腕AIを育てる」というテーマでThreadsを発信しています。
+中心メッセージは「AIで時間を生み出し、人にしかできない仕事へ」。
+
+あなたの立ち位置（重要・ここを外さない）：
+- AIの使い方を"教える先生"ではない。自分の整骨院を実験場にしている当事者。
+- AIを単なるツールではなく、"新人スタッフ（右腕）"として実際に育てている。
+- 成功だけでなく失敗も正直に公開する。
+- 現場で本当に使った方法・起きた変化だけを話す。
+- AIによって生まれた「時間」を見せる（投稿を作ること自体が目的ではない）。
+- 専門用語を多用しない。AI初心者の院長にも伝わる、やさしい言葉で書く。`
+
+// ---- 発信ターゲット ----
+const AUDIENCE = `【読者（ターゲット）】
+整骨院・整体院・鍼灸院・一人治療院の院長、美容サロン経営者。
+SNS発信や集客業務に疲れている。AIに興味はあるが使い方が分からない。
+予約・LINE・Googleマップ・ブログ・患者フォローなどを全部自分で抱えている。`
+
+// ---- 投稿カテゴリー（週次比率＝weight。合計100） ----
+// ※「問いかけ型(question)」は独立カテゴリーではなく、全カテゴリー共通の
+//   「50%以上を質問で終える」ルールとして実現する（weight=0）。タグとしては使用可。
+const CATEGORIES = {
+  training_diary: {
+    label: "AIスタッフ育成日記",
+    weight: 25,
+    kosei: ["B", "A", "E"],
+    prompt: `【今日の投稿：AIスタッフ育成日記】
+AI（右腕スタッフ）に何かの仕事を覚えさせた"今日の一場面"を、日記のように書く。
+・今日AIに覚えさせた仕事／任せられるようになった業務／うまくいかなかったこと／どう指示を直したか／AIが成長したポイント のどれかを1つ。
+・「AIも新人スタッフと同じで最初の教育が大事」という目線を自然ににじませる。
+参考トーン：
+「今日、AIスタッフにGoogleマップ投稿を覚えさせました。最初は広告っぽい文章ばかり。でも『患者さんの不安を先に書いて』と教えたら一気に自然に。AIも新人と同じで、最初の教育が全部ですね。」`,
+  },
+  daily_report: {
+    label: "AIスタッフの日報",
+    weight: 15,
+    kosei: ["C", "B"],
+    prompt: `【今日の投稿：AIスタッフの日報】
+今日「AIがやった仕事」と「人（院長）がやった仕事」を対比し、生まれた時間の使い道まで見せる。
+・箇条書きは短く。AIがやったこと／自分がやったこと を分ける。
+・締めは「生み出したいのは投稿ではなく時間」という方向へ。ただし毎回同じ言い回しにしない。
+参考トーン：
+「今日AIがやったこと：Threads投稿・LINE文・Googleマップ投稿。僕がやったこと：施術・カウンセリング・家族との夕食。AIで作りたいのは投稿じゃなくて時間です。」`,
+  },
+  clinic_problem: {
+    label: "治療院経営者の悩み",
+    weight: 20,
+    kosei: ["E", "A"],
+    prompt: `【今日の投稿：治療院経営者の悩み】
+施術後の発信疲れ・LINE返信が溜まる・Googleマップ更新が止まる・集客を学ぶ時間がない・一人院で全部抱える——等の"あるある"に深く共感する。
+・答えやAI解決策は軽く触れる程度でよい（教えすぎない）。
+・必ず、読者が答えやすい疑問形で終える。
+参考トーン：
+「患者さんが帰ったあと、Threads、Instagram、LINE、Googleマップ。全部自分で考えていませんか？ 施術より、施術以外の仕事に疲れている先生は多い気がします。一番時間を取られている仕事は何ですか？」`,
+  },
+  ai_philosophy: {
+    label: "AI活用の考え方",
+    weight: 15,
+    kosei: ["D"],
+    prompt: `【今日の投稿：AI活用の考え方】
+短く強いメッセージ。「AIは人を減らすものではなく、人にしかできない時間を増やすもの」という思想を、治療院の具体例を1つ添えて言い切る。
+・抽象論だけで終わらせない。必ず治療院の現場に着地させる。
+・毎回同じ結論（同じ言い回し）にしない。
+参考トーン：
+「AIは人を減らすためのものじゃない。患者さんを見る時間を増やすためのもの。僕がAIで作りたいのは、投稿じゃなくて余白です。」`,
+  },
+  case_study: {
+    label: "実際の業務改善",
+    weight: 10,
+    kosei: ["C"],
+    prompt: `【今日の投稿：実際の業務改善】
+ある業務が「変更前→変更後」でどう変わったかを分かりやすく。生まれた時間を何に回したかまで。
+・数字を使う場合は、下の【使える実績データ】に書かれた"事実"だけを使う。データが無ければ数字を作らず、定性的に書く。
+・誇張・根拠のない数字は禁止。
+参考トーン：
+「以前はSNS20分・LINE15分・Googleマップ10分・ブログ30分で毎日約75分。今はAIが下書きを作るので確認だけ。戻ってきた時間は、患者さんのカウンセリングに使っています。」`,
+  },
+  failure_story: {
+    label: "失敗談・改善記録",
+    weight: 10,
+    kosei: ["B", "A"],
+    prompt: `【今日の投稿：失敗談・改善記録】
+AI活用でうまくいかなかったことを、成功談よりも具体的に・人間味をもって書く。
+・「AIが悪いのではなく、指示・設計をした自分の問題だった」という気づきに着地させることが多い。
+・きれいにまとめすぎない。
+参考トーン：
+「AIに100投稿作らせたけど、ほぼ全部ボツでした。原因はAIじゃなく、"誰に何を伝えるか"を決めずに作らせた僕。大事なのはプロンプトより仕事の設計でした。」`,
+  },
+  question: {
+    label: "問いかけ型",
+    weight: 0, // 独立抽選はしない（全体の質問締め50%以上ルールで担保）。タグとしては有効。
+    kosei: ["E", "A"],
+    prompt: `【今日の投稿：問いかけ型】
+反応を取るための、答えやすい質問を中心にした短い投稿。1〜2文の状況共有＋質問。
+質問例：SNSで一番面倒な作業は？／投稿を考えるのに何分？／AIに最初に任せたい仕事は？／施術以外で一番時間を取られている仕事は？`,
+  },
+  service: {
+    label: "サービス案内",
+    weight: 5,
+    kosei: ["D", "A"],
+    prompt: `【今日の投稿：サービス案内（ソフトに）】
+直接的な営業はしない。「先生が施術に集中できる時間を作る仕組みを考えている。まずは自分の整骨院で実験中」というスタンスで、押し付けずに伝える。
+・「お問い合わせください」「導入支援しています」のような露骨な営業文句は使わない。
+・あくまで実験・過程の共有として書き、興味を持った人が自然に反応できる余白を残す。
+参考トーン：
+「SNS投稿を作るサービスじゃなくて、先生が施術に集中できる時間を作る仕組みを考えています。まずは、自分の整骨院で実験中です。」`,
+  },
+}
+
+// ---- 文章構成A〜E ----
+const KOSEI = {
+  A: "構成A：悩み → 気づき → AIでの改善 → 問いかけ",
+  B: "構成B：今日やったこと → 失敗 → 改善 → 学び",
+  C: "構成C：以前の状態 → 現在の状態 → 生まれた時間 → その時間の使い道",
+  D: "構成D：短い主張 → 理由 → 治療院の具体例",
+  E: "構成E：治療院あるある → 共感 → 解決のヒント → 質問",
+}
+
+// ---- 投稿文の共通ルール ----
+const GLOBAL_RULES = `【投稿文のルール（必ず守る）】
+- 全体で80〜250文字程度。1文を短く。改行を多めに使う。
+- 難しい専門用語は避ける。治療院経営者が共感できる具体例（SNS・LINE・Googleマップ・予約・口コミ・ブログ等）を必ず入れる。
+- 抽象論だけで終わらせない。必ず現場の具体に着地させる。
+- 売り込み感を強くしない。毎回同じ結論・同じ言い回しにしない。
+- 絵文字は0〜2個まで。ハッシュタグは使わない。見出し記号（#や【】）は本文に使わない。
+- 「AIはすごい」で終わらせない。仕事や時間がどう変わったかを伝える。
+- 誇張した成果・根拠のない数字は使わない。医療効果や集客成果を断定しない（「必ず」「絶対」「治る」等は禁止）。
+- 出力は投稿本文のみ。ラベル・前置き・説明・カテゴリー名・「MAIN:」等は一切書かない。`
+
+// ============================================================
+// 選択ロジック
+// ============================================================
+
+// 直近に使ったカテゴリーを避けつつ、週次比率で重み付け抽選する
+function pickCategory(recentCategories = []) {
+  const pool = Object.entries(CATEGORIES).filter(([, c]) => c.weight > 0)
+  // 直近2件と同じカテゴリーは避ける（在庫があれば）
+  const recent = recentCategories.slice(-2)
+  let candidates = pool.filter(([key]) => !recent.includes(key))
+  if (candidates.length === 0) candidates = pool
+  const total = candidates.reduce((s, [, c]) => s + c.weight, 0)
+  let r = Math.random() * total
+  for (const [key, c] of candidates) {
+    r -= c.weight
+    if (r <= 0) return key
+  }
+  return candidates[0][0]
+}
+
+function pickKosei(categoryKey) {
+  const cat = CATEGORIES[categoryKey]
+  const list = (cat && cat.kosei && cat.kosei.length) ? cat.kosei : Object.keys(KOSEI)
+  return list[Math.floor(Math.random() * list.length)]
+}
+
+// ============================================================
+// プロンプト生成
+// ============================================================
+
+// metrics: metrics_aisupport.json の中身（事実のみ）。無ければ null
+// avoidTexts: 直近投稿の本文配列（重複回避のためモデルに提示）
+function buildPrompt({ categoryKey, koseiKey, metrics = null, avoidTexts = [] }) {
+  const cat = CATEGORIES[categoryKey]
+  const usesMetrics = ["case_study", "daily_report"].includes(categoryKey)
+
+  let metricsSection = ""
+  if (usesMetrics) {
+    if (metrics && Object.keys(metrics).length > 0) {
+      metricsSection = `
+【使える実績データ（事実。ここに書かれた数字だけ使ってよい。無い数字は作らない）】
+${JSON.stringify(metrics, null, 2)}
+`
+    } else {
+      metricsSection = `
+【実績データ】
+具体的な数字は提供されていません。数字を創作せず、時間や手間が「減った」といった定性的な表現にとどめてください。
+`
+    }
+  }
+
+  const avoidSection = avoidTexts.length > 0 ? `
+【直近の投稿（冒頭・主張・具体例・質問が似ないように。必ず違う切り口で）】
+${avoidTexts.slice(0, 12).map((t, i) => `--- ${i + 1} ---\n${t}`).join("\n\n")}
+` : ""
+
+  return `${WORLDVIEW}
+
+${AUDIENCE}
+
+${cat.prompt}
+
+【今回の文章構成】${KOSEI[koseiKey]}
+${metricsSection}${avoidSection}
+${GLOBAL_RULES}`
+}
+
+// ============================================================
+// 品質チェック / 重複判定（純関数）
+// ============================================================
+
+const BUSINESS_TERMS = ["SNS", "LINE", "Google", "グーグル", "マップ", "ブログ", "投稿", "予約", "口コミ", "カルテ", "集客", "事務", "会計", "返信", "DM", "リマインド", "キャンセル", "ホームページ", "チラシ", "メニュー", "カウンセリング", "患者", "施術", "問い合わせ", "アンケート", "下書き", "配信", "告知", "キャンペーン", "発信"]
+const HARD_SELL = ["お問い合わせください", "お申し込み", "申し込みは", "購入", "今すぐ登録", "期間限定", "割引", "販売中", "お申込み", "ご登録ください"]
+// 医療・成果の断定は薬機法/医療広告ガイドライン上NG。ただし「絶対に手放したくない」等の無害な用法まで
+// 弾かないよう、必ず/絶対/100%は"成果語が近くにある時だけ"NGとする。
+const MEDICAL_BANNED = ["治る", "完治", "確実に", "保証します"]
+const STRONG_WORDS = ["必ず", "絶対", "100%"]
+const OUTCOME_RE = /(治|痩|瘦|太|増え|集客|予約|成果|効果|儲|売上|来院|新規)/
+
+function charCount(text) {
+  return [...(text || "").trim()].length
+}
+
+function hasQuestion(text) {
+  return /[?？]/.test(text || "")
+}
+
+// 品質チェック。ok=false なら reasons に理由。
+function qualityCheck(text, { history = [], category = "" } = {}) {
+  const reasons = []
+  const t = (text || "").trim()
+  const len = charCount(t)
+
+  // 「AI活用の考え方」は"短く強いメッセージ"が方針なので下限を緩め、業務語も必須にしない
+  const isPhilosophy = category === "ai_philosophy"
+  const minLen = isPhilosophy ? 45 : 75
+  if (len < minLen) reasons.push(`短すぎ(${len}字)`)
+  if (len > 270) reasons.push(`長すぎ(${len}字)`)
+  if (!isPhilosophy && !BUSINESS_TERMS.some((w) => t.includes(w))) reasons.push("具体的な業務語が無い（抽象的すぎ）")
+
+  const hardSellHit = HARD_SELL.filter((w) => t.includes(w))
+  if (hardSellHit.length > 0) reasons.push(`売り込みが強い(${hardSellHit.join("/")})`)
+
+  const medHit = MEDICAL_BANNED.filter((w) => t.includes(w))
+  if (medHit.length > 0) reasons.push(`医療・断定表現(${medHit.join("/")})`)
+  // 必ず/絶対/100% は"成果語"が同じ投稿にある時だけ成果の断定としてNG
+  const strongHit = STRONG_WORDS.filter((w) => t.includes(w))
+  if (strongHit.length > 0 && OUTCOME_RE.test(t)) reasons.push(`成果の断定(${strongHit.join("/")})`)
+
+  // 絵文字は0〜2個
+  const emojiCount = (t.match(/\p{Extended_Pictographic}/gu) || []).length
+  if (emojiCount > 2) reasons.push(`絵文字が多い(${emojiCount})`)
+
+  // ハッシュタグ・見出し記号
+  if (/#|＃/.test(t)) reasons.push("ハッシュタグ/#がある")
+
+  // 重複チェック（過去30日）
+  const dup = findDuplicate(t, history, 30)
+  if (dup) reasons.push(`過去投稿と類似(${Math.round(dup.score * 100)}%)`)
+
+  return { ok: reasons.length === 0, reasons, len, hasQuestion: hasQuestion(t) }
+}
+
+// 文字bigramのJaccard類似度
+function normalize(text) {
+  return (text || "").replace(/\s+/g, "").replace(/[、。！？!?「」（）()・…]/g, "")
+}
+function bigrams(s) {
+  const set = new Set()
+  for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2))
+  return set
+}
+function similarity(a, b) {
+  const A = bigrams(normalize(a))
+  const B = bigrams(normalize(b))
+  if (A.size === 0 || B.size === 0) return 0
+  let inter = 0
+  for (const g of A) if (B.has(g)) inter++
+  return inter / (A.size + B.size - inter)
+}
+
+// history: [{text, postedAt|createdAt}]。days日以内で類似度0.55超があれば返す
+function findDuplicate(text, history = [], days = 30) {
+  const now = Date.now()
+  const windowMs = days * 24 * 60 * 60 * 1000
+  let best = null
+  for (const h of history) {
+    const ts = Date.parse(h.postedAt || h.createdAt || "") || now
+    if (now - ts > windowMs) continue
+    const score = similarity(text, h.text || "")
+    if (score >= 0.55 && (!best || score > best.score)) best = { score, text: h.text }
+  }
+  return best
+}
+
+module.exports = {
+  WORLDVIEW, AUDIENCE, CATEGORIES, KOSEI, GLOBAL_RULES,
+  pickCategory, pickKosei, buildPrompt,
+  qualityCheck, similarity, findDuplicate, charCount, hasQuestion,
+}
