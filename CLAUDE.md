@@ -149,6 +149,11 @@
 - THREADS_ACCESS_TOKEN_AISUPPORT / THREADS_USER_ID_AISUPPORT（ANTHROPIC_API_KEY・TAVILY_API_KEYは共通）
 - 履歴書き戻しのため workflow に `permissions: contents: write`（標準の GITHUB_TOKEN を使用、追加登録不要）
 
+### 外部情報の参照（2026-07-22追加）
+- 対象カテゴリー（育成日記・悩み・考え方・業務改善・サービス）は Tavily でネット検索し、要約を**背景として"ゆるく"**プロンプトに渡す（`content.WEB_QUERIES` / `usesWeb` / `searchQuery`）
+- 日報・失敗談は個人的内容のため検索しない
+- 使い方は「そのままコピー・数字/研究の羅列・断定はしない。自身の体験に絡めて自然に一言」＝教える型に戻さない。`TAVILY_API_KEY` 未設定なら検索スキップ（従来どおり動く）
+
 ### フック＆エンゲージメント強化（2026-07-22追加）
 - `content_aisupport.js` の `HOOK_RULES`：1行目でスクロールを止める（情景・具体・意外性）／締めは"一言で答えられる質問"（2択・「何分？」等、漠然とした問いは禁止）。質問締めの強制しきい値を60%に引き上げ
 - **反応の計測・学習**：`insights_aisupport.js` が Threads API から各投稿の 閲覧/いいね/返信/リポスト を取得し `history_aisupport.json` に記録＋カテゴリー別レポート出力。ワークフロー `insights_aisupport.yml`（手動 or cron）で実行し履歴を書き戻す

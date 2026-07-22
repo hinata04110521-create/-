@@ -150,6 +150,22 @@ const HOOK_RULES = `【最初の1行（フック）で必ずスクロールを�
 - 「どう思いますか？」「教えてください」のような漠然とした問いは避ける。
 - 質問は1つだけ。あれこれ聞かない。`
 
+// ---- 外部情報（ネット検索）を"背景として軽く"参考にするカテゴリーと検索クエリ ----
+// 日報・失敗談は個人的な内容なので検索しない。他は世の中の動き/事例を軽く踏まえる。
+const WEB_QUERIES = {
+  training_diary: "整骨院 サロン AI活用 ChatGPT 業務効率化 事例 最新",
+  clinic_problem: "治療院 整骨院 経営 集客 SNS 課題 悩み 最新",
+  ai_philosophy: "AI 仕事 人間の役割 生産性 時間の使い方 最新",
+  case_study: "整体 サロン AI 業務改善 時短 SNS LINE 事例 最新",
+  service: "治療院 AI導入 集客 効率化 中小 事例 最新",
+}
+function usesWeb(categoryKey) {
+  return !!WEB_QUERIES[categoryKey]
+}
+function searchQuery(categoryKey) {
+  return WEB_QUERIES[categoryKey] || ""
+}
+
 // ============================================================
 // 選択ロジック
 // ============================================================
@@ -182,7 +198,7 @@ function pickKosei(categoryKey) {
 
 // metrics: metrics_aisupport.json の中身（事実のみ）。無ければ null
 // avoidTexts: 直近投稿の本文配列（重複回避のためモデルに提示）
-function buildPrompt({ categoryKey, koseiKey, metrics = null, avoidTexts = [], engagementHint = "" }) {
+function buildPrompt({ categoryKey, koseiKey, metrics = null, avoidTexts = [], engagementHint = "", webContext = "" }) {
   const cat = CATEGORIES[categoryKey]
   const usesMetrics = ["case_study", "daily_report"].includes(categoryKey)
 
@@ -207,6 +223,11 @@ ${avoidTexts.slice(0, 12).map((t, i) => `--- ${i + 1} ---\n${t}`).join("\n\n")}
 ` : ""
 
   const hintSection = engagementHint ? `\n${engagementHint}\n` : ""
+  const webSection = webContext ? `
+【参考情報（ネット検索の要約。背景として"ゆるく"参考にするだけ）】
+${webContext}
+※そのままコピーしない。数字・研究の羅列や引用にしない。断定もしない。あなた自身の体験・実感に絡めて、必要なら自然に一言ふれる程度でよい（無理に入れなくてもよい）。
+` : ""
 
   return `${WORLDVIEW}
 
@@ -215,7 +236,7 @@ ${AUDIENCE}
 ${cat.prompt}
 
 【今回の文章構成】${KOSEI[koseiKey]}
-${metricsSection}${avoidSection}${hintSection}
+${metricsSection}${avoidSection}${hintSection}${webSection}
 ${HOOK_RULES}
 
 ${GLOBAL_RULES}`
@@ -344,6 +365,7 @@ function findDuplicate(text, history = [], days = 30) {
 module.exports = {
   WORLDVIEW, AUDIENCE, CATEGORIES, KOSEI, GLOBAL_RULES, HOOK_RULES,
   pickCategory, pickKosei, buildPrompt,
+  usesWeb, searchQuery, WEB_QUERIES,
   categoryPerformance, buildEngagementHint,
   qualityCheck, similarity, findDuplicate, charCount, hasQuestion,
 }

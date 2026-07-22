@@ -269,10 +269,20 @@ async function generateCategoryPost({ client, recentCategories, history, metrics
   const categoryKey = content.pickCategory(recentCategories)
   const koseiKey = content.pickKosei(categoryKey)
   const avoidTexts = history.slice(-12).map((h) => h.text).filter(Boolean)
+
+  // 外部情報（背景として軽く参考）：対象カテゴリーのみネット検索
+  let webContext = ""
+  if (content.usesWeb(categoryKey)) {
+    try {
+      webContext = await searchWeb(content.searchQuery(categoryKey))
+      if (webContext) console.log(`  参考: ネット検索の要約を取得(${webContext.length}字)`)
+    } catch { webContext = "" }
+  }
+
   let lastReasons = []
 
   for (let attempt = 1; attempt <= 3; attempt++) {
-    let prompt = content.buildPrompt({ categoryKey, koseiKey, metrics, avoidTexts, engagementHint })
+    let prompt = content.buildPrompt({ categoryKey, koseiKey, metrics, avoidTexts, engagementHint, webContext })
     if (forceQuestion) prompt += "\n\n【追加指示】必ず、読者が答えやすい短い質問文で締めること。"
     if (lastReasons.length) prompt += `\n\n【前回はこの理由で不採用。必ず直すこと】${lastReasons.join(" / ")}`
 
