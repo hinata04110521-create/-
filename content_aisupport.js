@@ -120,6 +120,72 @@ AI活用で以前つまずいた点を、**今は解決している経験者の�
   },
 }
 
+// ============================================================
+// 【追加モジュール】業務ネタの引き出し(TOPICS)
+// 目的: カテゴリー(型)は同じでも「何について書くか(ネタ)」を毎回変え、
+//       LINE返信・初診質問ばかりの金太郎飴を根絶する。
+// content_aisupport.js の CATEGORIES 定義の直後あたりに貼り付け。
+// ============================================================
+const TOPICS = [
+  // --- SNS・発信まわり ---
+  { id: "sns_auto",      t: "SNS投稿をAIが自動で作って自動で投稿する仕組み" },
+  { id: "sns_stuck",     t: "投稿ネタが思いつかず、発信が止まってしまう問題" },
+  { id: "sns_time",      t: "施術の合間に投稿を考える時間が地味に削られること" },
+  { id: "reel_edit",     t: "施術動画にテロップを入れてリールを作る作業をAIで自動化した話" },
+  { id: "hook_1line",    t: "投稿の1行目(フック)で読まれるか決まる、という気づき" },
+  { id: "post_timing",   t: "時間帯によって見る人が違うので投稿数を増やす戦略" },
+  { id: "blog_draft",    t: "ブログ記事の下書きをAIに任せて週1本ラクに出す方法" },
+  // --- Google・口コミ ---
+  { id: "gmap_post",     t: "Googleマップの投稿をAIで続ける工夫" },
+  { id: "review_reply",  t: "口コミ返信を毎回ゼロから考えず、型を作って1分で返す話" },
+  { id: "review_bad",    t: "低評価の口コミに、誠実で角の立たない返信をAIで書く話" },
+  { id: "review_ask",    t: "お客様に口コミをお願いするのが気まずい問題と、その解決" },
+  // --- LINE・予約 ---
+  { id: "line_broadcast",t: "LINEの一斉配信文をAIで作って配信をラクにする話" },
+  { id: "line_reply",    t: "LINEに来る同じ質問(初診・料金・予約)への自動返信" },
+  { id: "reminder",      t: "予約リマインドの自動化で無断キャンセルを減らす話" },
+  { id: "eve_inquiry",   t: "夕方〜夜の問い合わせを施術中に取りこぼす問題と対策" },
+  { id: "reserve_flow",  t: "予約までの導線が長くて離脱される問題(リンク1つで解決)" },
+  // --- 診断ツール・集客の仕組み ---
+  { id: "shindan_tool",  t: "症状タイプ診断のWebツールを自作して集客の入口にした話" },
+  { id: "line_funnel",   t: "投稿→診断→LINE登録→来院、という自動で回る導線の設計" },
+  { id: "no_followers",  t: "フォロワーは多くないのに閲覧・来院につながる理由(導線)" },
+  { id: "no_ad_cost",    t: "ホットペッパー等の広告費に頼らずSNSで集客する考え方" },
+  { id: "ad_check",      t: "インスタ広告の効果(続ける/止める)を数字で判断する話" },
+  // --- 事務・経営 ---
+  { id: "flyer_pop",     t: "チラシ・院内POP・メニュー表の文章をAIで作る話" },
+  { id: "sales_analysis",t: "月の売上・来院データをAIに見せて次の打ち手を考える話" },
+  { id: "manual",        t: "スタッフ用マニュアルや接遇の手順をAIで整える話" },
+  { id: "self_care_doc", t: "患者さんに渡すセルフケア資料をAIで作る話" },
+  { id: "campaign_idea", t: "季節のキャンペーン企画のたたき台をAIに出させる話" },
+  { id: "task_triage",   t: "AIに任せる仕事と、人がやるべき仕事の線引き" },
+  // --- 考え方・失敗・時間 ---
+  { id: "time_not_post", t: "AIで作りたいのは投稿ではなく「時間」だという考え" },
+  { id: "trust_by_human",t: "患者さんとの信頼は人が作る。だからAIに雑務を渡す" },
+  { id: "design_matters",t: "うまくいく鍵はプロンプトより「仕事の設計」だった失敗談" },
+  { id: "too_much_ai",   t: "AIに丸投げして大量にボツを出した失敗と、そこから学んだこと" },
+  { id: "start_small",   t: "いきなり全部自動化せず、まず1つの作業から始める勧め" },
+  { id: "afraid_ai",     t: "「AIは難しそう」という思い込みと、実際はコピペで始まる話" },
+  { id: "night_desk",    t: "閉店後の事務作業で2時間残っていたのが30分になった話" },
+  { id: "family_time",   t: "浮いた時間を家族や自分の勉強に使えるようになった話" },
+  { id: "repeat_visit",  t: "新規より、来た人がまた来たくなる仕組み(次回予約・LINE)" },
+  { id: "one_person",    t: "一人院・少人数店で全部抱え込む大変さと、その手放し方" },
+  { id: "consistency",   t: "発信で一番大事なのは質より「続けられること」だという話" },
+  { id: "voice_input",   t: "パソコンが苦手でも、音声やコピペでAIを使い始められる話" },
+  { id: "study_group",   t: "治療院・サロン向けにAIの勉強会を始めた話" },
+];
+
+// 直近で使ったネタIDを避けて1つ選ぶ
+function pickTopic(recentTopicIds = []) {
+  const recent = new Set(recentTopicIds.slice(-10)); // 直近10ネタは避ける
+  let pool = TOPICS.filter((x) => !recent.has(x.id));
+  if (pool.length === 0) pool = TOPICS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// 1回の実行(5投稿)内で同じネタを避けるための集合
+let _usedTopicsThisRun = new Set();
+
 // ---- 文章構成A〜E ----
 const KOSEI = {
   A: "構成A：悩み → 気づき → AIでの改善 → 問いかけ",
@@ -202,6 +268,11 @@ function pickKosei(categoryKey) {
 // avoidTexts: 直近投稿の本文配列（重複回避のためモデルに提示）
 function buildPrompt({ categoryKey, koseiKey, metrics = null, avoidTexts = [], engagementHint = "", webContext = "" }) {
   const cat = CATEGORIES[categoryKey]
+  // 【今回のネタ】型とは別に具体的な話題を1つ選んで注入（金太郎飴防止の核心）
+  let _topic = pickTopic([..._usedTopicsThisRun])
+  if (_usedTopicsThisRun.size >= TOPICS.length) _usedTopicsThisRun = new Set()
+  _usedTopicsThisRun.add(_topic.id)
+  const topicSection = "\n【今回はこのネタで書く（毎回ここが変わる。必ずこの話題に沿い、他のネタに逃げない）】\n■ " + _topic.t + "\n※指定ネタ以外の話（例：LINE返信・初診質問など指定外）に流れないこと。指定ネタを具体的な一場面に落として書く。\n"
   const usesMetrics = ["case_study", "daily_report"].includes(categoryKey)
 
   let metricsSection = ""
@@ -236,7 +307,7 @@ ${webContext}
 ${AUDIENCE}
 
 ${cat.prompt}
-
+${topicSection}
 【今回の文章構成】${KOSEI[koseiKey]}
 ${metricsSection}${avoidSection}${hintSection}${webSection}
 ${HOOK_RULES}
@@ -365,6 +436,7 @@ function findDuplicate(text, history = [], days = 30) {
 }
 
 module.exports = {
+  TOPICS, pickTopic,
   WORLDVIEW, AUDIENCE, CATEGORIES, KOSEI, GLOBAL_RULES, HOOK_RULES,
   pickCategory, pickKosei, buildPrompt,
   usesWeb, searchQuery, WEB_QUERIES,
