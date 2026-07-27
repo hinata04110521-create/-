@@ -282,7 +282,7 @@ async function generateCategoryPost({ client, recentCategories, history, metrics
   let lastReasons = []
 
   for (let attempt = 1; attempt <= 3; attempt++) {
-    let prompt = content.buildPrompt({ categoryKey, koseiKey, metrics, avoidTexts, engagementHint, webContext, mode: "tree" })
+    let prompt = content.buildPrompt({ categoryKey, koseiKey, metrics, avoidTexts, engagementHint, webContext })
     if (forceQuestion) prompt += "\n\n【追加指示】必ず、読者が答えやすい短い質問文で締めること。"
     if (lastReasons.length) prompt += `\n\n【前回はこの理由で不採用。必ず直すこと】${lastReasons.join(" / ")}`
 
@@ -291,17 +291,7 @@ async function generateCategoryPost({ client, recentCategories, history, metrics
       max_tokens: 500,
       messages: [{ role: "user", content: prompt }],
     })
-    const raw = message.content[0].text.trim()
-    // MAIN / REPLY を分解
-    let mainText = raw, replyText = ""
-    const mm = raw.match(/MAIN\s*[:：]\s*([\s\S]*?)(?:\n\s*REPLY\s*[:：]|$)/i)
-    const rm = raw.match(/REPLY\s*[:：]\s*([\s\S]*)$/i)
-    if (mm) mainText = mm[1].trim()
-    if (rm) replyText = rm[1].trim()
-    mainText = cleanGenerated(mainText)
-    replyText = cleanGenerated(replyText)
-    // 品質チェックは本文+返信の全体で見る（重複判定・語彙チェックのため）
-    const text = replyText ? (mainText + "\n" + replyText) : mainText
+    const text = cleanGenerated(message.content[0].text.trim())
     const q = content.qualityCheck(text, { history, category: categoryKey })
 
     if (forceQuestion && !q.hasQuestion) {
@@ -310,7 +300,7 @@ async function generateCategoryPost({ client, recentCategories, history, metrics
       continue
     }
     if (q.ok) {
-      return { text, mainText, replyText, category: categoryKey, kosei: koseiKey, len: q.len, hasQuestion: q.hasQuestion }
+      return { text, category: categoryKey, kosei: koseiKey, len: q.len, hasQuestion: q.hasQuestion }
     }
     lastReasons = q.reasons
     console.log(`品質チェック不採用(${attempt}/3) [${content.CATEGORIES[categoryKey].label}]: ${q.reasons.join(", ")}`)
@@ -362,7 +352,7 @@ async function main() {
         console.log(`※ プレビューモード：投稿 ${i} はしていません`)
       } else {
         try {
-          const id = await postToThreadsWithReply(gen.mainText, gen.replyText)
+          const id = await postToThreads(gen.text)
           result = `posted:${id}`
           postedAt = new Date().toISOString()
           console.log(`投稿成功！ ${i}/${totalPosts}`)
