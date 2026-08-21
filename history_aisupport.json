@@ -988,5 +988,16 @@
     "error": null,
     "charCount": 265,
     "hasQuestion": true
+  },
+  {
+    "text": "昨日、患者さんの説明を音声メモして、AIに渡しました。\n\n「腰痛で来た患者さん、こんな症状で、施術後こう変わった」\n\nって、スマホで20秒話しかけるだけ。\n\nAIがそれをLINE返信に整えてくれる。\n\n来院目安も、注意点も、ちゃんと入ってる。\n\n朝、確認して送信するだけ。\n\nコピペもいらない。\n\nパソコンで長く打つこともない。\n\n浮いた時間を、次の施術準備に回してます。\n\n患者さんへのLINE説明、今は毎回手で書いてますか？",
+    "category": "training_diary",
+    "kosei": "A",
+    "createdAt": "2026-08-21T08:01:29.641Z",
+    "postedAt": "2026-08-21T08:01:29.641Z",
+    "result": "posted:17989478901029974",
+    "error": null,
+    "charCount": 214,
+    "hasQuestion": true
   }
 ]
