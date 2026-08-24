@@ -1120,5 +1120,16 @@
     "error": null,
     "charCount": 213,
     "hasQuestion": true
+  },
+  {
+    "text": "昨日、患者さんの説明をスマホに話しかけて、AIに渡しました。\n\n「腰痛で来た人、朝が辛くて、施術後は楽になった」\n\n20秒話すだけ。\n\nキーボードで打たなくていい。\n\nパソコンも開かなくていい。\n\nAIが整えてくれたLINE文を、朝確認して送信するだけ。\n\nコピペもいらない。\n\n浮いた時間を、次の施術準備に回してます。\n\n患者さんへのLINE説明、今は毎回パソコンで打ってますか、それとも別の方法で作ってますか？",
+    "category": "clinic_problem",
+    "kosei": "A",
+    "createdAt": "2026-08-24T12:01:37.491Z",
+    "postedAt": "2026-08-24T12:01:37.490Z",
+    "result": "posted:17921008170426333",
+    "error": null,
+    "charCount": 207,
+    "hasQuestion": true
   }
 ]
