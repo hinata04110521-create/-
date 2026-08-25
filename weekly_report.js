@@ -39,33 +39,85 @@ function threadsGet(url) {
   })
 }
 
-// ===== アカウントのトップ投稿を取得 =====
-async function getTopPosts(userId, token) {
+// ===== アカウントのファネル指標（フォロワー数＋週間エンゲージ合計＋トップ5）=====
+async function getFunnel(userId, token) {
+  const out = { followers: null, totals: { count: 0, views: 0, likes: 0, replies: 0, reposts: 0 }, top5: [] }
+  if (!userId || !token) return out
   try {
+    // フォロワー数（アカウントinsight。tokenに threads_manage_insights スコープが必要）
+    const fUrl = `https://graph.threads.net/v1.0/${userId}/threads_insights?metric=followers_count&access_token=${token}`
+    const fRes = await threadsGet(fUrl)
+    const fItem = (fRes.data || []).find((d) => d.name === "followers_count")
+    out.followers = fItem?.total_value?.value ?? null
+
+    // 直近投稿の反応を集計
     const url = `https://graph.threads.net/v1.0/${userId}/threads?fields=id,text,timestamp&limit=30&access_token=${token}`
     const res = await threadsGet(url)
     const posts = (res.data || []).filter((p) => p.text && p.text.length > 5)
 
-    const postsWithMetrics = await Promise.all(
+    const withMetrics = await Promise.all(
       posts.map(async (post) => {
         try {
-          const insUrl = `https://graph.threads.net/v1.0/${post.id}/insights?metric=views,likes,replies&access_token=${token}`
+          const insUrl = `https://graph.threads.net/v1.0/${post.id}/insights?metric=views,likes,replies,reposts&access_token=${token}`
           const ins = await threadsGet(insUrl)
           const m = {}
           for (const item of ins.data || []) {
             m[item.name] = item.total_value?.value ?? item.values?.[0]?.value ?? 0
           }
-          return { ...post, views: m.views || 0, likes: m.likes || 0, replies: m.replies || 0 }
+          return { ...post, views: m.views || 0, likes: m.likes || 0, replies: m.replies || 0, reposts: m.reposts || 0 }
         } catch {
-          return { ...post, views: 0, likes: 0, replies: 0 }
+          return { ...post, views: 0, likes: 0, replies: 0, reposts: 0 }
         }
       })
     )
 
-    return postsWithMetrics.sort((a, b) => b.views - a.views).slice(0, 5)
+    out.totals.count = withMetrics.length
+    for (const p of withMetrics) {
+      out.totals.views += p.views
+      out.totals.likes += p.likes
+      out.totals.replies += p.replies
+      out.totals.reposts += p.reposts
+    }
+    out.top5 = withMetrics.sort((a, b) => b.views - a.views).slice(0, 5)
   } catch (e) {
-    console.log("投稿取得エラー:", e.message)
-    return []
+    console.log("ファネル取得エラー:", e.message)
+  }
+  return out
+}
+
+// ===== LINE Insight GET（ヘッダ認証）=====
+function lineGet(url, token) {
+  return new Promise((resolve) => {
+    const req = https.request(url, { method: "GET", headers: { Authorization: `Bearer ${token}` } }, (res) => {
+      let data = ""
+      res.on("data", (c) => (data += c))
+      res.on("end", () => { try { resolve(JSON.parse(data)) } catch { resolve({}) } })
+    })
+    req.on("error", () => resolve({}))
+    req.setTimeout(10000, () => { req.destroy(); resolve({}) })
+    req.end()
+  })
+}
+
+// ===== LINE友だち数（LINE_CHANNEL_ACCESS_TOKEN が無ければスキップ）=====
+async function getLineFriends() {
+  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN
+  if (!token) {
+    console.log("LINE_CHANNEL_ACCESS_TOKEN未設定のためLINE友だち数はスキップ")
+    return null
+  }
+  try {
+    // データは1〜2日遅れるため、直近4日を新しい順に探して最初に取れた日を採用
+    for (let back = 1; back <= 4; back++) {
+      const d = new Date(Date.now() + 9 * 3600 * 1000 - back * 86400 * 1000)
+      const ymd = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`
+      const res = await lineGet(`https://api.line.me/v2/bot/insight/followers?date=${ymd}`, token)
+      if (res && res.status === "ready" && typeof res.followers === "number") return res.followers
+    }
+    return null
+  } catch (e) {
+    console.log("LINE友だち数取得エラー:", e.message)
+    return null
   }
 }
 
@@ -254,6 +306,33 @@ async function sendEmail(pdfBuffer, reportDate) {
   console.log(`メール送信完了: ${filename}`)
 }
 
+// ===== ファネル実測セクション（数値はコードで直挿入＝AIに書かせない）=====
+function funnelSection(labo, zutsuu, lineFriends) {
+  const rate = (t) => (t.views ? ((t.likes / t.views) * 100).toFixed(2) + "%" : "—")
+  const f = (v) => (v == null ? "取得不可" : v.toLocaleString())
+  return `## 0. ファネル実測値（今週のスナップショット）
+
+| 指標 | hinata_body_labo | hinata_zutsuu |
+|---|---|---|
+| フォロワー数 | ${f(labo.followers)} | ${f(zutsuu.followers)} |
+| 集計投稿数（直近30件まで） | ${labo.totals.count} | ${zutsuu.totals.count} |
+| 合計閲覧 | ${f(labo.totals.views)} | ${f(zutsuu.totals.views)} |
+| 合計いいね | ${f(labo.totals.likes)} | ${f(zutsuu.totals.likes)} |
+| 合計返信 | ${f(labo.totals.replies)} | ${f(zutsuu.totals.replies)} |
+| 合計リポスト | ${f(labo.totals.reposts)} | ${f(zutsuu.totals.reposts)} |
+| いいね率（いいね/閲覧） | ${rate(labo.totals)} | ${rate(zutsuu.totals)} |
+| LINE友だち数（ダイエット） | ${f(lineFriends)} | — |
+
+> ※フォロワー数が「取得不可」＝Threadsトークンに \`threads_manage_insights\` スコープが必要。
+> ※LINE友だち数は \`LINE_CHANNEL_ACCESS_TOKEN\`（ダイエットの公式アカウント）が設定されている場合のみ表示。
+> ※プロフ訪問はThreads APIに無いため、フォロワー数の増減で代替する。
+> ※先週比（増減）を出すには数値の履歴保存が必要（ワークフローでの書き戻し）＝次段で対応予定。
+
+---
+
+`
+}
+
 // ===== メイン =====
 async function main() {
   const now = new Date()
@@ -268,16 +347,23 @@ async function main() {
     tavilySearch("頭痛 肩こり 猫背 改善 最新 トレンド 2026"),
   ])
 
-  // 2. アカウント分析（並列）
+  // 2. アカウント分析＋ファネル指標（並列）
   console.log("アカウントデータ取得中...")
-  const [bodyLaboPosts, zutsuuPosts] = await Promise.all([
-    getTopPosts(process.env.THREADS_USER_ID, process.env.THREADS_ACCESS_TOKEN),
-    getTopPosts(process.env.THREADS_USER_ID_ZUTSUU, process.env.THREADS_ACCESS_TOKEN_ZUTSUU),
+  const [laboFunnel, zutsuuFunnel, lineFriends] = await Promise.all([
+    getFunnel(process.env.THREADS_USER_ID, process.env.THREADS_ACCESS_TOKEN),
+    getFunnel(process.env.THREADS_USER_ID_ZUTSUU, process.env.THREADS_ACCESS_TOKEN_ZUTSUU),
+    getLineFriends(),
   ])
+  console.log(`フォロワー labo=${laboFunnel.followers} zutsuu=${zutsuuFunnel.followers} / LINE友だち=${lineFriends}`)
 
-  // 3. Claude でレポート生成
+  // 3. Claude でレポート生成（トップ5はファネルから）＋ファネル実測値を先頭に連結
   console.log("レポート本文生成中...")
-  const reportContent = await generateReportContent({ dietTrend, headacheTrend, bodyLaboPosts, zutsuuPosts })
+  const aiContent = await generateReportContent({
+    dietTrend, headacheTrend,
+    bodyLaboPosts: laboFunnel.top5,
+    zutsuuPosts: zutsuuFunnel.top5,
+  })
+  const reportContent = funnelSection(laboFunnel, zutsuuFunnel, lineFriends) + aiContent
 
   // 4. PDF 生成
   console.log("PDF生成中...")
