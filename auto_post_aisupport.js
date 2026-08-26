@@ -248,6 +248,8 @@ function loadMetrics() {
   for (const [k, v] of Object.entries(m)) {
     if (k.startsWith("_")) continue
     if (v === null || v === "" || v === undefined) continue
+    if (Array.isArray(v) && v.length === 0) continue // 空の業務別実績は「データ無し」扱い
+    if (typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0) continue
     facts[k] = v
   }
   return Object.keys(facts).length > 0 ? facts : null
