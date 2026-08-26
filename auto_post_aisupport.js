@@ -318,6 +318,8 @@ async function main() {
   const history = loadHistory()
   const metrics = loadMetrics()
   const recentCategories = history.slice(-6).map((h) => h.category).filter(Boolean)
+  // CTA（無料AI集客診断）の付与頻度・ローテを毎回同じ位置にしないための通し番号ベース
+  const ctaBase = history.length
   // 反応データが十分溜まっていれば、伸びている型へ寄せるヒントを作る（少ないうちは空）
   const engagementHint = content.buildEngagementHint(history)
   console.log(`履歴: ${history.length}件 / 実績データ: ${metrics ? "あり" : "なし"} / 学習ヒント: ${engagementHint ? "あり" : "なし（データ蓄積中）"}`)
@@ -339,9 +341,16 @@ async function main() {
         continue
       }
 
-      console.log(`カテゴリー: ${content.CATEGORIES[gen.category].label} / 構成: ${gen.kosei} / ${gen.len}字 / 質問締め: ${gen.hasQuestion ? "○" : "×"}`)
+      // 無料AI集客診断への相談導線（CTA）をコードで確実に付与（サービス枠は常に／他は控えめ・ローテ）
+      const globalIndex = ctaBase + i
+      const ctaLine = content.shouldAttachCTA({ category: gen.category, globalIndex })
+        ? content.pickDiagnosisCTA(globalIndex)
+        : null
+      const finalText = content.appendCTA(gen.text, ctaLine)
+
+      console.log(`カテゴリー: ${content.CATEGORIES[gen.category].label} / 構成: ${gen.kosei} / ${gen.len}字 / 質問締め: ${gen.hasQuestion ? "○" : "×"} / CTA: ${ctaLine ? "○ 無料AI集客診断" : "×"}`)
       console.log("--- 投稿本文 ---")
-      console.log(gen.text)
+      console.log(finalText)
       console.log("----------------")
 
       let result = "dry_run"
@@ -352,7 +361,7 @@ async function main() {
         console.log(`※ プレビューモード：投稿 ${i} はしていません`)
       } else {
         try {
-          const id = await postToThreads(gen.text)
+          const id = await postToThreads(finalText)
           result = `posted:${id}`
           postedAt = new Date().toISOString()
           console.log(`投稿成功！ ${i}/${totalPosts}`)
@@ -365,7 +374,7 @@ async function main() {
       }
 
       history.push({
-        text: gen.text,
+        text: gen.text, // 重複判定はCTAなしの本文で行うため、本文だけを保存する
         category: gen.category,
         kosei: gen.kosei,
         createdAt: new Date().toISOString(),
@@ -374,6 +383,7 @@ async function main() {
         error,
         charCount: gen.len,
         hasQuestion: gen.hasQuestion,
+        hasCTA: !!ctaLine,
       })
       recentCategories.push(gen.category)
     } catch (e) {

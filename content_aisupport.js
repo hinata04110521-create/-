@@ -114,9 +114,9 @@ AI活用で以前つまずいた点を、**今は解決している経験者の�
 自院で実証済みのAIの仕組みを、同じ治療院・サロンに「AI導入支援」として提供している——という立場で書く。
 ・成果や自信は見せてよい（本気でやっている）。ただし「お問い合わせください！」の連呼のような、うるさい営業文句は避ける。
 ・"何を代行するか"ではなく、"先生が施術に集中できる時間を作る"という価値で語る。
-・締めで、興味を持った人が相談に進める導線を1つだけ自然に置く（例：「気になる方はプロフィールのLINEから相談できます」）。押し売りにしない。
+・本文の最後に連絡先・LINE誘導などのCTAは書かない（相談導線はシステムが自動で付ける）。あなたは価値が伝わる中身だけを書く。
 参考トーン：
-「AIで投稿を作る"だけ"のサービスではありません。先生が施術に集中できる時間そのものを作る仕組みを、自院で実証してから提供しています。気になる方は、プロフィールのLINEから相談できます。」`,
+「AIで投稿を作る"だけ"のサービスではありません。先生が施術に集中できる時間そのものを作る仕組みを、自院で実証してから提供しています。」`,
   },
 }
 
@@ -217,6 +217,41 @@ const HOOK_RULES = `【最初の1行（フック）で必ずスクロールを�
 - できるだけ2択（A/B）や「何分？」「どれ？」など、一言で返せる質問にする。
 - 「どう思いますか？」「教えてください」のような漠然とした問いは避ける。
 - 質問は1つだけ。あれこれ聞かない。`
+
+// ============================================================
+// 【追加】「無料AI集客診断」への相談導線（CTA）
+// ・ダイエット垢と同じ方針で「CTAはコードで確実に付与」する（プロンプト任せだと入らない/カットされるため）。
+// ・Threadsは露骨なCTAの連発でリーチが落ちるので、頻度は控えめ・言い回しはローテ・あくまで柔らかく。
+// ・入口は「無料AI集客診断」に統一（オファーシートの入口と一致させる）。
+// ============================================================
+const DIAGNOSIS_CTA = [
+  "もし「うちの院でもできる？」と気になったら、プロフィールのLINEで“無料AI集客診断”をやっています。",
+  "今の集客で、AIに任せられる所はどこか。プロフィールのLINEの“無料AI集客診断”で一緒に見つけられます。",
+  "SNSに時間を取られている先生へ。プロフィールのLINEで“無料AI集客診断”を受け付けています。",
+  "気になる方は、プロフィールのLINEに「診断希望」と一言どうぞ。“無料AI集客診断”は無料です。",
+]
+
+// CTAを付ける頻度：サービス枠は常に付与、それ以外は N 投稿に 1 回だけ（付けすぎない＝リーチを守る）
+const CTA_EVERY_NTH = 5
+
+// ローテーションでCTAを1本返す（index はグローバル通し番号などを渡す）
+function pickDiagnosisCTA(index = 0) {
+  const n = DIAGNOSIS_CTA.length
+  return DIAGNOSIS_CTA[((index % n) + n) % n]
+}
+
+// この投稿にCTAを付けるか判定（service は常に、それ以外は N 回に 1 回）
+function shouldAttachCTA({ category, globalIndex = 0 } = {}) {
+  if (category === "service") return true
+  return globalIndex % CTA_EVERY_NTH === 0
+}
+
+// 本文にCTAを付与（空行で区切る）。CTAが空なら本文のまま返す。
+function appendCTA(text, ctaLine) {
+  const body = (text || "").trim()
+  const cta = (ctaLine || "").trim()
+  return cta ? `${body}\n\n${cta}` : body
+}
 
 // ---- 外部情報（ネット検索）を"背景として軽く"参考にするカテゴリーと検索クエリ ----
 // 日報・失敗談は個人的な内容なので検索しない。他は世の中の動き/事例を軽く踏まえる。
@@ -438,6 +473,7 @@ function findDuplicate(text, history = [], days = 30) {
 module.exports = {
   TOPICS, pickTopic,
   WORLDVIEW, AUDIENCE, CATEGORIES, KOSEI, GLOBAL_RULES, HOOK_RULES,
+  DIAGNOSIS_CTA, CTA_EVERY_NTH, pickDiagnosisCTA, shouldAttachCTA, appendCTA,
   pickCategory, pickKosei, buildPrompt,
   usesWeb, searchQuery, WEB_QUERIES,
   categoryPerformance, buildEngagementHint,

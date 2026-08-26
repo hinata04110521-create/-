@@ -162,6 +162,13 @@
   - ※インサイト取得には token に `threads_manage_insights` スコープが必要（無い場合はレポートに失敗理由が出る）
   - ⚠️ いいね・フォローの主因は「返信を生む投稿」＋「自分から他アカウントへ engagement する人の作業」。Bot単体では限界がある点は運用者に共有済み
 
+### 相談導線「無料AI集客診断」（2026-08-26追加）
+- ねらい：発信→**個別相談（無料AI集客診断）**→AI導入支援（集客おまかせパッケージ）の入口を作る。従来は相談導線が曖昧だったため、コードで確実に付与する（ダイエット垢と同じ方針）
+- 実装：`content_aisupport.js` の `DIAGNOSIS_CTA`（柔らかいCTA4本をローテ）＋ `shouldAttachCTA` / `pickDiagnosisCTA` / `appendCTA`。`auto_post_aisupport.js` が生成後の本文に付与
+- **頻度（リーチを守るため控えめ）**：`service` カテゴリーは常に付与、それ以外は `CTA_EVERY_NTH`（既定5）投稿に1回だけ
+- 品質チェック**後**に付与するので、CTAが売り込み判定で弾かれることはない。重複判定は本文（CTAなし）で行う。履歴に `hasCTA` を記録
+- `service` プロンプトからは本文内CTA指示を削除（コード付与に一本化）。入口の呼称は「無料AI集客診断」でオファーシートと統一
+
 ### 動作確認
 - `node test_offline.js`（APIを使わずロジック検証：抽選分布/品質/重複/リトライ/学習）
 - GitHub Actions → Run workflow で `dry_run: true`（投稿せず生成内容だけログ確認）

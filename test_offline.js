@@ -63,6 +63,24 @@ console.log("\n[5] 反応データからの学習（categoryPerformance / buildE
   ok(content.buildEngagementHint(hist.slice(0, 5)) === "", "データが少ないうちはヒントを出さない")
 }
 
+console.log("\n[6] 無料AI集客診断への相談導線（CTA）")
+{
+  // サービス枠は必ずCTAが付く
+  ok(content.shouldAttachCTA({ category: "service", globalIndex: 1 }), "サービス枠は常にCTAを付ける")
+  // 非サービス枠は N 回に 1 回だけ
+  const n = content.CTA_EVERY_NTH
+  ok(content.shouldAttachCTA({ category: "clinic_problem", globalIndex: n }), `非サービス枠は${n}回に1回付く`)
+  ok(!content.shouldAttachCTA({ category: "clinic_problem", globalIndex: n + 1 }), "非サービス枠は毎回は付けない（付けすぎ防止）")
+  // ローテーションが4本を一巡する
+  const lines = new Set([0, 1, 2, 3].map((i) => content.pickDiagnosisCTA(i)))
+  ok(lines.size === content.DIAGNOSIS_CTA.length, "CTAは全パターンをローテーションする")
+  // 付与すると本文の後ろにCTAが空行区切りで足される
+  const withCta = content.appendCTA("本文です。", content.pickDiagnosisCTA(0))
+  ok(withCta.startsWith("本文です。") && withCta.includes("無料AI集客診断"), "本文の後にCTAが付与される")
+  // CTAが無い時は本文のまま
+  ok(content.appendCTA("本文だけ。", null) === "本文だけ。", "CTAが無い投稿は本文のまま")
+}
+
 console.log("\n[4] generateCategoryPost（モックLLM：品質NG→リトライ→OK）")
 {
   // 1回目はダメな投稿、2回目で良い投稿を返すモッククライアント
