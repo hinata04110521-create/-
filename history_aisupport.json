@@ -1478,5 +1478,17 @@
     "charCount": 251,
     "hasQuestion": true,
     "hasCTA": true
+  },
+  {
+    "text": "今日、Googleマップに投稿するネタが思いつきませんでした。\n\n患者さんの改善例はあるのに「何を書こう」で15分止まってた。\n\n毎日同じです。\n\nだからAIに試したんです。\n\n「腰痛で来た患者さん、3回目で夜間の痛みが取れた」ってメモするだけ。\n\nAIが投稿の形に整えてくれた。\n\n朝、確認して上げるだけ。\n\nネタから形にする手間が消えた。\n\nその12分を、午前の施術準備に回してます。\n\n投稿、今は毎回ゼロから文章を考えてますか、それともネタをストックしてますか？",
+    "category": "clinic_problem",
+    "kosei": "E",
+    "createdAt": "2026-09-02T12:01:48.230Z",
+    "postedAt": "2026-09-02T12:01:48.230Z",
+    "result": "posted:18163107523472419",
+    "error": null,
+    "charCount": 234,
+    "hasQuestion": true,
+    "hasCTA": true
   }
 ]
