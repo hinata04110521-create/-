@@ -1610,5 +1610,17 @@
     "charCount": 255,
     "hasQuestion": true,
     "hasCTA": false
+  },
+  {
+    "text": "昨日、患者さんの改善例をAIに音声で話すだけでした。\n\n「肩こりで来た患者さん、2回目で楽になった」ってスマホに吹き込むだけ。\n\nAIが投稿に整えてくれた。\n\nパソコン苦手だし、タイピングもしんどい。\n\nでも音声なら、施術の合間にできる。\n\n確認してコピペで上げるだけ。\n\n毎回ゼロから文章を考える手間が消えた。\n\nその10分を、患者さんへの説明に回してます。\n\nSNS投稿、今は文章をゼロから書いてますか、それとも何か工夫してますか？",
+    "category": "clinic_problem",
+    "kosei": "E",
+    "createdAt": "2026-09-04T12:02:23.357Z",
+    "postedAt": "2026-09-04T12:02:23.357Z",
+    "result": "posted:18142773865562710",
+    "error": null,
+    "charCount": 218,
+    "hasQuestion": true,
+    "hasCTA": false
   }
 ]
