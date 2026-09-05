@@ -1622,5 +1622,17 @@
     "charCount": 218,
     "hasQuestion": true,
     "hasCTA": false
+  },
+  {
+    "text": "今日、LINEで同じ質問が3件来ました。\n\n「初診はいくらですか」\n「予約は今日取れますか」\n「どこにありますか」\n\n毎回ゼロから返信してました。\n\n10分かかる。\n\nだからAIに試したんです。\n\nよくある質問（料金・予約・アクセス）をAIに学習させて、LINE来たら自動で返す。\n\n患者さんが質問 → AI即座に返信 → 確認するだけ。\n\n毎回手で書く手間が消えた。\n\nその8分を、施術の準備に回してます。\n\nLINEの返信、今は同じ質問に毎回手で答えてますか、それとも何か工夫してますか？",
+    "category": "daily_report",
+    "kosei": "B",
+    "createdAt": "2026-09-05T03:01:40.216Z",
+    "postedAt": "2026-09-05T03:01:40.216Z",
+    "result": "posted:18007744037972911",
+    "error": null,
+    "charCount": 246,
+    "hasQuestion": true,
+    "hasCTA": false
   }
 ]
