@@ -83,6 +83,7 @@
   .hero h1 .big{font-size:1.28em;color:var(--sun-deep)}
   .hero .lead{font-size:16.5px;color:var(--ink-soft);margin-bottom:26px;max-width:620px}
   .hero-img{
+    position:relative;
     margin:8px 0 26px;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
     aspect-ratio:16/9;background:#efe6d7 center/cover;
     display:flex;align-items:center;justify-content:center;color:#a99;font-size:13px;text-align:center;
@@ -148,6 +149,7 @@
     padding:24px;margin-bottom:20px;
   }
   .reason-item .rimg{
+    position:relative;overflow:hidden;
     aspect-ratio:1/1;border-radius:14px;background:#efe6d7 center/cover;
     display:flex;align-items:center;justify-content:center;color:#a99;font-size:11px;text-align:center;
   }
@@ -207,7 +209,7 @@
   /* ===== 院紹介 ===== */
   .about .about-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:30px;align-items:center}
   @media(max-width:760px){.about .about-grid{grid-template-columns:1fr}}
-  .about .portrait{aspect-ratio:4/5;border-radius:var(--radius);background:#efe6d7 center/cover;box-shadow:var(--shadow);
+  .about .portrait{position:relative;overflow:hidden;aspect-ratio:4/5;border-radius:var(--radius);background:#efe6d7 center/cover;box-shadow:var(--shadow);
     display:flex;align-items:center;justify-content:center;color:#a99;font-size:12px;text-align:center}
   .about h3{font-size:22px;font-weight:900;margin-bottom:6px}
   .about .role{color:var(--sun-deep);font-weight:700;font-size:14px;margin-bottom:14px}
@@ -265,6 +267,16 @@
 
   /* helper */
   .note{background:#fff8ec;border:1px dashed var(--sun);border-radius:10px;padding:6px 10px;font-size:12px;color:var(--sun-deep);display:inline-block;margin-top:6px}
+  .imgfill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+
+  /* ===== 動画セクション ===== */
+  .movie{background:linear-gradient(180deg,var(--bg),var(--bg-warm))}
+  .movie .frame{
+    max-width:760px;margin:0 auto;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
+    background:#000;aspect-ratio:16/9;position:relative;
+    display:flex;align-items:center;justify-content:center;color:#ccc;font-size:13px;text-align:center;
+  }
+  .movie video{width:100%;height:100%;object-fit:cover;display:block;position:relative;z-index:2}
 </style>
 </head>
 <body>
@@ -299,9 +311,10 @@
       ひなた整骨院は、その場しのぎではなく<strong>“頭痛が起きにくい体”</strong>づくりをお手伝いします。
     </p>
 
-    <!-- 差し替え画像①：施術風景 or 笑顔の女性 -->
-    <div class="hero-img" style="/* background-image:url('images/hero.jpg') */">
-      〔写真①〕明るい施術風景／笑顔の40〜50代女性<br>（16:9・現LPの写真を使用可）
+    <!-- 写真2：頭の施術 → images/hero.jpg -->
+    <div class="hero-img">
+      <img class="imgfill" src="images/hero.jpg" alt="頭・首をていねいに施術する様子" onerror="this.remove()">
+      〔写真①=いただいた写真2（頭の施術）〕<br>images/hero.jpg を置くと表示されます
     </div>
 
     <div class="cta-group">
@@ -311,6 +324,22 @@
       <a href="tel:04443871861" class="cta cta-tel">
         <span><small>お電話でのご予約</small><span class="num">044-387-1861</span></span>
       </a>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 動画 ========== -->
+<section class="movie">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="en">MOVIE</span>
+      <h2>動画で見る<br><span class="u">ひなた整骨院</span></h2>
+    </div>
+    <div class="frame">
+      <video controls muted playsinline preload="metadata" poster="images/hero.jpg" onerror="this.remove()">
+        <source src="images/movie.mp4" type="video/mp4">
+      </video>
+      〔動画〕images/movie.mp4 を置くと再生できます
     </div>
   </div>
 </section>
@@ -386,7 +415,7 @@
     </div>
 
     <div class="reason-item">
-      <div class="rimg">〔写真②〕<br>カウンセリング</div>
+      <div class="rimg"><img class="imgfill" src="images/counseling.jpg" alt="カウンセリングの様子" onerror="this.remove()">写真3<br>カウンセリング</div>
       <div>
         <div class="num">REASON 01</div>
         <h3>「なぜ痛むのか」を<br>ていねいに見つける検査</h3>
@@ -395,7 +424,7 @@
     </div>
 
     <div class="reason-item">
-      <div class="rimg">〔写真③〕<br>施術・整体</div>
+      <div class="rimg"><img class="imgfill" src="images/treatment.jpg" alt="頭・首の施術" onerror="this.remove()">写真2<br>施術・整体</div>
       <div>
         <div class="num">REASON 02</div>
         <h3>一人ひとりに合わせた<br>オーダーメイド施術</h3>
@@ -404,7 +433,7 @@
     </div>
 
     <div class="reason-item">
-      <div class="rimg">〔写真④〕<br>姿勢・セルフケア指導</div>
+      <div class="rimg"><img class="imgfill" src="images/reception.jpg" alt="施術内容のご説明" onerror="this.remove()">写真4<br>ご説明・アドバイス</div>
       <div>
         <div class="num">REASON 03</div>
         <h3>「戻らない体」へ、<br>姿勢とセルフケアまで</h3>
@@ -413,7 +442,7 @@
     </div>
 
     <div class="reason-item">
-      <div class="rimg">〔写真⑤〕<br>院内・受付</div>
+      <div class="rimg"><img class="imgfill" src="images/room.jpg" alt="院内の様子" onerror="this.remove()">写真1<br>院内</div>
       <div>
         <div class="num">REASON 04</div>
         <h3>通いやすく、<br>相談しやすい院内</h3>
@@ -514,7 +543,7 @@
       <h2>院長あいさつ</h2>
     </div>
     <div class="about-grid">
-      <div class="portrait">〔写真⑧〕院長の写真</div>
+      <div class="portrait"><img class="imgfill" src="images/director.jpg" alt="院長 日向 龍久" onerror="this.remove()">写真3<br>院長の写真</div>
       <div>
         <h3>頭痛のない毎日を、<br>あなたと一緒に。</h3>
         <div class="role">ひなた整骨院 院長／柔道整復師　日向 龍久</div>
